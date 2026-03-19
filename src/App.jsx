@@ -229,36 +229,29 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,allGames})=>{
           :me&&<button onClick={tog} style={{padding:"9px 28px",borderRadius:12,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>}
         </div></div></div>
 
-    {/* Top 5 */}
-    {top5.length>0&&<div style={{marginBottom:24}}><div className="sec-title">⭐ TOP RATED</div>
-      <div style={{display:"flex",gap:10}} className="hs">{top5.map((g,i)=>
-        <div key={g.game_id} style={{minWidth:m?80:90,textAlign:"center",flexShrink:0}}>
-          <div style={{position:"relative",borderRadius:12,overflow:"hidden",aspectRatio:"2/3",marginBottom:4}}>
-            {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
-            <div style={{position:"absolute",top:4,left:4,background:"linear-gradient(135deg,#67e8f9,#818cf8)",borderRadius:8,padding:"2px 7px",fontSize:10,fontWeight:900,color:"#0f0c19"}}>#{i+1}</div></div>
-          <div style={{fontSize:10,fontWeight:600,lineHeight:1.2}}>{g.game_title}</div>
-          <span style={{fontSize:10,color:"#fde68a",fontWeight:800}}>★ {g.my_rating}</span></div>)}</div></div>}
+    {/* Favorite Games — Letterboxd exact: 4 clean posters, gold bottom bar, no text */}
+    {top5.length>0&&<div style={{marginBottom:24}}><div className="sec-title">FAVORITE GAMES</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,maxWidth:m?200:280}}>
+        {top5.slice(0,4).map(g=><div key={g.game_id} style={{borderRadius:4,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 2px 8px rgba(0,0,0,.3)",border:"1px solid rgba(255,255,255,.06)"}}>
+          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:"#fde68a"}}/>
+        </div>)}</div></div>}
 
-    {/* Activity */}
-    {acts.length>0&&<div style={{marginBottom:24}}><div className="sec-title">⚡ RECENT ACTIVITY</div>
-      {acts.slice(0,8).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:12}}>
-        {a.game_img&&<img src={a.game_img} style={{width:32,height:18,borderRadius:4,objectFit:"cover"}}/>}
-        <span style={{color:"rgba(255,255,255,.4)"}}>{a.action}</span>
-        {a.game_title&&<span style={{fontWeight:700}}>{a.game_title}</span>}
-        {a.action==="rated"&&a.rating&&<span style={{color:"#fde68a"}}>★{a.rating}</span>}
-        <span style={{marginLeft:"auto",color:"rgba(255,255,255,.1)",fontSize:10}}>{tA(a.created_at)}</span></div>)}</div>}
+    {/* Recent Activity — Letterboxd diary style: date | poster | title | stars */}
+    {acts.length>0&&<div style={{marginBottom:24}}><div className="sec-title">RECENT ACTIVITY</div>
+      {acts.slice(0,8).map(a=><div key={a.id} style={{display:"grid",gridTemplateColumns:"44px 32px 1fr auto",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}>
+        <span style={{fontSize:10,color:"rgba(255,255,255,.15)",textAlign:"right"}}>{tA(a.created_at)}</span>
+        {a.game_img?<div style={{width:32,height:44,borderRadius:3,overflow:"hidden"}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>:<div style={{width:32,height:44,borderRadius:3,background:"#1e1b2e"}}/>}
+        <div><div style={{fontSize:12,fontWeight:600,lineHeight:1.2}}>{a.game_title}</div><div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:1}}>{a.action}</div></div>
+        {a.action==="rated"&&a.rating?<Stars rating={a.rating} size={8}/>:<span/>}
+      </div>)}</div>}
 
     {/* Games */}
     {gs.length>0&&<div><div className="sec-title">🎮 GAMES ({gs.length})</div>
-      <div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:6}}>
-        {gs.map(g=><div key={g.game_id} style={{textAlign:"center"}}>
-          <div style={{borderRadius:8,overflow:"hidden",aspectRatio:"2/3",position:"relative",marginBottom:3}}>
-            {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🎮</div>}
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 40%)"}}/>
-            {g.status&&<div style={{position:"absolute",top:2,left:2,padding:"1px 4px",borderRadius:4,background:SC[g.status]?.c||"#fff",fontSize:5,fontWeight:900,color:"#0f0c19"}}>{SC[g.status]?.l}</div>}
-            {g.my_rating&&<div style={{position:"absolute",bottom:2,right:2,fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
-          </div>
-          <div style={{fontSize:8,fontWeight:600,lineHeight:1.2,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.game_title}</div>
+      <div style={{display:"grid",gridTemplateColumns:m?"repeat(5,1fr)":"repeat(auto-fill,minmax(60px,1fr))",gap:4}}>
+        {gs.map(g=><div key={g.game_id} style={{borderRadius:4,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}>
+          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
+          {g.status&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:SC[g.status]?.c||"#fff"}}/>}
         </div>)}</div></div>}
 
     {flM&&<FLM userId={viewId} type={flM} onClose={()=>setFlM(null)} m={m} goUser={goUser}/>}
