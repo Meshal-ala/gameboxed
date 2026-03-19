@@ -48,6 +48,30 @@ const upAv=async(uid,file)=>{
   return path;
 };
 
+/* Steam API */
+const steamAPI=async(params)=>{const r=await fetch(`/api/steam?${new URLSearchParams(params)}`);return r.json()};
+const resolveSteamId=async(input)=>{
+  if(/^\d{17}$/.test(input))return input;
+  const d=await steamAPI({action:"resolve",vanity:input});
+  return d.success===1?d.steamid:null;
+};
+const getSteamGames=async(steamid)=>steamAPI({action:"games",steamid});
+const getSteamProfile=async(steamid)=>steamAPI({action:"profile",steamid});
+const getSteamRecent=async(steamid)=>steamAPI({action:"recent",steamid});
+const getSteamAchievements=async(steamid,appid)=>steamAPI({action:"achievements",steamid,appid});
+const importSteamGames=async(uid,steamid)=>{
+  const{games}=await getSteamGames(steamid);
+  for(const g of games.slice(0,50)){
+    const sr=await fetch(`${AP}/games?key=${AK}&search=${encodeURIComponent(g.name)}&page_size=1&search_precise=true`);
+    const sd=await sr.json();const match=sd.results?.[0];
+    if(match){
+      const{data:ex}=await supabase.from("user_games").select("id").eq("user_id",uid).eq("game_id",match.id).single();
+      if(!ex){await supabase.from("user_games").insert({user_id:uid,game_id:match.id,game_title:match.name,game_img:match.background_image,status:g.playtime>120?"completed":g.playtime>30?"playing":"backlog",my_rating:null,steam_playtime:g.playtime,steam_appid:g.appid})}
+      else{await supabase.from("user_games").update({steam_playtime:g.playtime,steam_appid:g.appid}).eq("id",ex.id)}
+    }
+  }
+};
+
 /* News — fetch recently updated/released games with details */
 const loadNews=async()=>{
   const td=new Date().toISOString().slice(0,10);const wk=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
@@ -136,7 +160,63 @@ const EP=({prof,onClose,userId,onDone})=>{const[n,setN]=useState(prof?.display_n
         <button onClick={onClose} style={{flex:1,padding:"13px",borderRadius:12,...glass,color:"rgba(255,255,255,.5)",fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
         <button onClick={sv} disabled={ld} style={{flex:1,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>{ld?"...":"Save"}</button></div></div></div>};
 
-/* Follow List */
+/* Steam Link Modal */
+const SteamModal=({onClose,userId,onDone})=>{const[input,setInput]=useState("");const[ld,setLd]=useState(false);const[step,setStep]=useState("input");const[steamProf,setSteamProf]=useState(null);const[games,setGames]=useState([]);const[progress,setProgress]=useState(0);const[total,setTotal]=useState(0);
+  const lookup=async()=>{setLd(true);try{const sid=await resolveSteamId(input.trim());if(!sid){alert("Steam ID not found");setLd(false);return}
+    const[prof,gd]=await Promise.all([getSteamProfile(sid),getSteamGames(sid)]);
+    setSteamProf({...prof,steamid:sid});setGames(gd.games||[]);setStep("confirm");setLd(false)}catch(e){alert("Error: "+e.message);setLd(false)}};
+  const doImport=async()=>{setStep("importing");setTotal(Math.min(games.length,50));
+    const sid=steamProf.steamid;await saveProf(userId,{steam_id:sid});
+    const toImport=games.slice(0,50);
+    for(let i=0;i<toImport.length;i++){setProgress(i+1);const g=toImport[i];
+      try{const sr=await fetch(`${AP}/games?key=${AK}&search=${encodeURIComponent(g.name)}&page_size=1&search_precise=true`);const sd=await sr.json();const match=sd.results?.[0];
+        if(match){const{data:ex}=await supabase.from("user_games").select("id").eq("user_id",userId).eq("game_id",match.id).single();
+          if(!ex)await supabase.from("user_games").insert({user_id:userId,game_id:match.id,game_title:match.name,game_img:match.background_image,status:g.playtime>120?"completed":g.playtime>30?"playing":"backlog",my_rating:null});
+        }}catch{}}
+    setStep("done");await onDone()};
+  const inp={width:"100%",padding:"14px 16px",borderRadius:12,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:14,outline:"none"};
+  return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(24px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:440,padding:"32px 28px",background:"rgba(30,27,46,.85)"}}>
+      {step==="input"&&<><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#171a21,#2a475e)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🎮</div>
+        <div><h2 style={{fontSize:20,fontWeight:900}}>Link Steam</h2><p style={{color:"rgba(255,255,255,.3)",fontSize:12}}>Import your games automatically</p></div></div>
+        <p style={{color:"rgba(255,255,255,.4)",fontSize:13,lineHeight:1.6,marginBottom:16}}>Enter your Steam username or Steam ID (17 digits). Your Steam profile must be set to <b style={{color:"#67e8f9"}}>public</b>.</p>
+        <input value={input} onChange={e=>setInput(e.target.value)} placeholder="Steam username or ID" onKeyDown={e=>e.key==="Enter"&&lookup()} style={inp}/>
+        <div style={{display:"flex",gap:8,marginTop:14}}>
+          <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:12,...glass,color:"rgba(255,255,255,.5)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+          <button onClick={lookup} disabled={ld||!input.trim()} style={{flex:1,padding:"12px",borderRadius:12,border:"none",background:input.trim()?"linear-gradient(135deg,#67e8f9,#818cf8)":"rgba(255,255,255,.05)",color:input.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:13,fontWeight:800,cursor:input.trim()?"pointer":"default"}}>{ld?"Looking up...":"Find Account"}</button></div></>}
+
+      {step==="confirm"&&steamProf&&<><div style={{textAlign:"center",marginBottom:20}}>
+        <img src={steamProf.avatarfull} alt="" style={{width:64,height:64,borderRadius:16,marginBottom:8}}/>
+        <h3 style={{fontSize:18,fontWeight:900}}>{steamProf.personaname}</h3>
+        <p style={{color:"rgba(255,255,255,.3)",fontSize:12}}>Steam ID: {steamProf.steamid}</p></div>
+        <div style={{...glass,padding:16,borderRadius:14,marginBottom:16}}>
+          <div style={{fontSize:28,fontWeight:900,color:"#67e8f9",textAlign:"center"}}>{games.length}</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,.3)",textAlign:"center"}}>games found</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:4}}>We'll import up to 50 most played games</div></div>
+        <div style={{maxHeight:150,overflow:"auto",marginBottom:14}} className="hs">
+          {games.slice(0,10).map(g=><div key={g.appid} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}>
+            <img src={g.header} alt="" style={{width:80,height:30,borderRadius:4,objectFit:"cover"}}/>
+            <span style={{fontSize:11,flex:1}}>{g.name}</span>
+            <span style={{fontSize:10,color:"#67e8f9"}}>{Math.round(g.playtime/60)}h</span></div>)}
+          {games.length>10&&<p style={{textAlign:"center",color:"rgba(255,255,255,.2)",fontSize:11,marginTop:6}}>+{games.length-10} more games</p>}</div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setStep("input")} style={{flex:1,padding:"12px",borderRadius:12,...glass,color:"rgba(255,255,255,.5)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Back</button>
+          <button onClick={doImport} style={{flex:1,padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer"}}>Import Games</button></div></>}
+
+      {step==="importing"&&<div style={{textAlign:"center",padding:"20px 0"}}>
+        <div style={{width:48,height:48,border:"3px solid rgba(255,255,255,.05)",borderTopColor:"#67e8f9",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 16px"}}/>
+        <h3 style={{fontSize:18,fontWeight:900,marginBottom:4}}>Importing games...</h3>
+        <p style={{color:"rgba(255,255,255,.3)",fontSize:13}}>{progress} of {total} games</p>
+        <div style={{width:"100%",height:6,background:"rgba(255,255,255,.03)",borderRadius:3,marginTop:12,overflow:"hidden"}}>
+          <div style={{height:"100%",width:(progress/total*100)+"%",background:"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:3,transition:"width .3s"}}/></div></div>}
+
+      {step==="done"&&<div style={{textAlign:"center",padding:"20px 0"}}>
+        <div style={{fontSize:48,marginBottom:12}}>🎉</div>
+        <h3 style={{fontSize:20,fontWeight:900,marginBottom:4}}>Import Complete!</h3>
+        <p style={{color:"rgba(255,255,255,.3)",fontSize:13,marginBottom:16}}>{progress} games imported to your library</p>
+        <button onClick={onClose} style={{padding:"12px 28px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>Done</button></div>}
+    </div></div>};
 const FLM=({userId,type,onClose,m,goUser})=>{const[list,setList]=useState([]);const[ld,setLd]=useState(true);
   useEffect(()=>{(async()=>{setLd(true);setList(type==="followers"?await getFollowersList(userId):await getFollowingList(userId));setLd(false)})()},[userId,type]);
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1800,background:"rgba(15,12,25,.95)",display:"flex",alignItems:m?"flex-end":"center",justifyContent:"center",padding:m?0:16}}>
@@ -202,7 +282,7 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
       </div></div></div>};
 
 /* ═══ PROFILE PAGE (full page — for both self and others) ═══ */
-const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,allGames})=>{
+const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames})=>{
   const[p,setP]=useState(null);const[fc,setFc]=useState({followers:0,following:0});const[gs,setGs]=useState([]);const[acts,setActs]=useState([]);const[isF,setIsF]=useState(false);const[ld,setLd]=useState(true);const[flM,setFlM]=useState(null);
   const isSelf=me?.id===viewId;
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
@@ -225,6 +305,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,allGames})=>{
           <div onClick={()=>setFlM("following")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.following}</span> <span style={{color:"#67e8f9",fontSize:12}}>following</span></div></div>
         <div style={{display:"flex",gap:6,marginTop:10,justifyContent:m?"center":"flex-start"}}>
           {isSelf?<><button onClick={onEdit} style={{padding:"8px 18px",borderRadius:12,...glass,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
+            <button onClick={onSteam} style={{padding:"8px 18px",borderRadius:12,...glass,color:"#67e8f9",fontSize:12,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Steam Linked":"🎮 Link Steam"}</button>
             <button onClick={onSignOut} style={{padding:"8px 18px",borderRadius:12,...glass,color:"#fda4af",fontSize:12,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
           :me&&<button onClick={tog} style={{padding:"9px 28px",borderRadius:12,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>}
         </div></div></div>
@@ -261,7 +342,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,allGames})=>{
 export default function App(){
   const m=useM();const[pg,setPg]=useState("home");const[sel,setSel]=useState(null);const[q,setQ]=useState("");const[qO,setQO]=useState(false);
   const[ud,setUd]=useState({});const[user,setUser]=useState(null);const[prof,setProf]=useState(null);const[avV,setAvV]=useState(Date.now());const[fc,setFc]=useState({followers:0,following:0});
-  const[sa,setSa]=useState(false);const[ep,setEp]=useState(false);const[viewUID,setViewUID]=useState(null);const[flM,setFlM]=useState(null);
+  const[sa,setSa]=useState(false);const[ep,setEp]=useState(false);const[viewUID,setViewUID]=useState(null);const[flM,setFlM]=useState(null);const[steamModal,setSteamModal]=useState(false);
   const[pop,setPop]=useState([]);const[best,setBest]=useState([]);const[fresh,setFresh]=useState([]);const[soon,setSoon]=useState([]);const[actG,setActG]=useState([]);const[rpg,setRpg]=useState([]);const[indie,setIndie]=useState([]);
   const[sr,setSr]=useState([]);const[pSr,setPSr]=useState([]);const[lSr,setLSr]=useState([]);
   const[ld,setLd]=useState(true);const[sng,setSng]=useState(false);const[lf,setLf]=useState("all");const[sT,setST]=useState("games");
@@ -304,6 +385,7 @@ export default function App(){
 
     {sa&&<Auth onClose={()=>setSa(false)} onAuth={u=>{setUser(u);setSa(false)}}/>}
     {ep&&<EP prof={prof} onClose={()=>setEp(false)} userId={user?.id} onDone={reloadProf}/>}
+    {steamModal&&<SteamModal onClose={()=>setSteamModal(false)} userId={user?.id} onDone={async()=>{await lcl(user.id).then(setUd);await reloadProf()}}/>}
 
     {/* Nav */}
     {!m&&<nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(15,12,25,.8)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,.04)",padding:"0 28px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -444,7 +526,7 @@ export default function App(){
 
       {/* MY PROFILE — full page */}
       {pg==="profile"&&user&&<div style={{animation:"fadeIn .15s"}}>
-        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} allGames={all}/>
+        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all}/>
         {/* Lists section */}
         <div style={{marginTop:24}}><div className="sec-title">📝 LISTS</div>
           {myL.map(l=><div key={l.id} style={{...glass,padding:"12px 14px",borderRadius:12,marginBottom:5,fontSize:14,fontWeight:700}}>📝 {l.title}</div>)}
