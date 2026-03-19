@@ -19,6 +19,8 @@ const searchPeople=async q=>{const{data}=await supabase.from("profiles").select(
 const searchLists=async q=>{const{data}=await supabase.from("lists").select("*,profiles(display_name,username,avatar_url)").ilike("title",`%${q}%`).eq("is_public",true).limit(20);return data||[]};
 const loadLists=async u=>{const{data}=await supabase.from("lists").select("*").eq("user_id",u);return data||[]};
 const createList=async(u,t)=>await supabase.from("lists").insert({user_id:u,title:t}).select().single();
+const addGameToList=async(listId,gameId)=>{const{data:list}=await supabase.from("lists").select("game_ids").eq("id",listId).single();const ids=list?.game_ids||[];if(!ids.includes(gameId)){await supabase.from("lists").update({game_ids:[...ids,gameId]}).eq("id",listId)}};
+const removeFromLib=async(uid,gameId)=>{await supabase.from("user_games").delete().eq("user_id",uid).eq("game_id",gameId)};
 const postAct=async(uid,act,g)=>{await supabase.from("activities").insert({user_id:uid,action:act,game_id:g?.id,game_title:g?.title||g?.t,game_img:g?.img,rating:g?.rating})};
 const loadFeed=async uid=>{const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",uid);const ids=[uid,...(fo||[]).map(f=>f.following_id)];const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").in("user_id",ids).order("created_at",{ascending:false}).limit(40);return data||[]};
 const loadAllFeed=async()=>{const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").order("created_at",{ascending:false}).limit(40);return data||[]};
@@ -147,13 +149,15 @@ const FLM=({userId,type,onClose,m,goUser})=>{const[list,setList]=useState([]);co
         :<p style={{textAlign:"center",padding:24,color:"rgba(255,255,255,.2)"}}>No {type} yet</p>}</div></div></div>};
 
 /* Game Detail */
-const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV})=>{
+const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,reloadLists})=>{
   const[det,setDet]=useState(null);const[ldg,setLdg]=useState(true);const d=ud[g.id]||{};
   const[mr,setMr]=useState(d.myRating||0);const[st,setSt]=useState(d.status||"");const[tab,setTab]=useState("about");
-  const[rvs,setRvs]=useState([]);const[rt,setRt]=useState("");const[rr,setRr]=useState(0);const[posting,setPosting]=useState(false);
+  const[rvs,setRvs]=useState([]);const[rt,setRt]=useState("");const[rr,setRr]=useState(0);const[posting,setPosting]=useState(false);const[showLists,setShowLists]=useState(false);const[addedList,setAddedList]=useState("");
   useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs)},[g.id]);
   const sv=async(f,v)=>{if(!me){setSa(true);return}const nd={...d,[f]:v,title:g.t,img:g.img};if(f==="myRating"){setMr(v);await postAct(me.id,"rated",{id:g.id,title:g.t,img:g.img,rating:v})}if(f==="status"){setSt(v);await postAct(me.id,v==="completed"?"completed":v==="playing"?"started":"added to "+v,{id:g.id,title:g.t,img:g.img})}
     setUd({...ud,[g.id]:nd});await stc(me.id,g.id,nd);refresh?.()};
+  const removeGame=async()=>{if(!me)return;await removeFromLib(me.id,g.id);const n={...ud};delete n[g.id];setUd(n);setSt("");setMr(0);refresh?.()};
+  const handleAddToList=async(listId)=>{await addGameToList(listId,g.id);setAddedList(listId);reloadLists?.();setTimeout(()=>setAddedList(""),2000)};
   const subRev=async()=>{if(!me||!rt.trim())return;setPosting(true);await postRev(me.id,g,rr,rt);setRt("");setRr(0);setRvs(await loadGR(g.id));setPosting(false);refresh?.()};
 
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:m?"flex-end":"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?0:16}}>
@@ -172,7 +176,13 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV})=>{
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>STATUS</div>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(SC).map(([k,c])=><button key={k} onClick={()=>sv("status",k)} style={{padding:"4px 10px",borderRadius:20,fontSize:9,fontWeight:700,cursor:"pointer",border:"none",background:st===k?c.c:"rgba(255,255,255,.04)",color:st===k?"#0f0c19":"rgba(255,255,255,.3)"}}>{c.l}</button>)}</div></div></div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(SC).map(([k,c])=><button key={k} onClick={()=>sv("status",k)} style={{padding:"4px 10px",borderRadius:20,fontSize:9,fontWeight:700,cursor:"pointer",border:"none",background:st===k?c.c:"rgba(255,255,255,.04)",color:st===k?"#0f0c19":"rgba(255,255,255,.3)"}}>{c.l}</button>)}
+              {st&&<button onClick={removeGame} style={{padding:"4px 10px",borderRadius:20,fontSize:9,fontWeight:700,cursor:"pointer",border:"1px solid rgba(253,164,175,.2)",background:"transparent",color:"#fda4af"}}>✕ Remove</button>}</div></div></div>
+        {/* Add to List */}
+        {me&&myLists?.length>0&&<div style={{marginBottom:18}}>
+          <button onClick={()=>setShowLists(!showLists)} style={{padding:"8px 14px",borderRadius:12,fontSize:11,fontWeight:700,cursor:"pointer",...glass,color:"#c4b5fd",border:"1px solid rgba(196,181,253,.15)",width:"100%",textAlign:"left"}}>📝 {showLists?"Hide lists":"Add to list..."}</button>
+          {showLists&&<div style={{marginTop:6,display:"flex",flexDirection:"column",gap:4}}>
+            {myLists.map(l=><button key={l.id} onClick={()=>handleAddToList(l.id)} style={{padding:"8px 12px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",background:addedList===l.id?"rgba(110,231,183,.1)":"rgba(255,255,255,.03)",border:addedList===l.id?"1px solid rgba(110,231,183,.2)":"1px solid rgba(255,255,255,.04)",color:addedList===l.id?"#6ee7b7":"rgba(255,255,255,.5)",textAlign:"left",transition:"all .15s"}}>{addedList===l.id?"✓ Added to ":"📝 "}{l.title}</button>)}</div>}</div>}
         <div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,.06)",marginBottom:16}}>
           {["about","reviews","media"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"10px 16px",background:"none",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",color:tab===t?"#67e8f9":"rgba(255,255,255,.2)",borderBottom:tab===t?"2px solid #67e8f9":"2px solid transparent",textTransform:"capitalize"}}>{t}{t==="reviews"&&rvs.length?` (${rvs.length})`:""}</button>)}</div>
         {tab==="about"&&(ldg?<Loader/>:det?.description_raw&&<p style={{color:"rgba(255,255,255,.5)",fontSize:14,lineHeight:1.9}}>{det.description_raw.slice(0,600)}</p>)}
@@ -240,13 +250,16 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,allGames})=>{
 
     {/* Games */}
     {gs.length>0&&<div><div className="sec-title">🎮 GAMES ({gs.length})</div>
-      <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(100px,1fr))",gap:8}}>
-        {gs.map(g=><div key={g.game_id} style={{borderRadius:10,overflow:"hidden",aspectRatio:"2/3",position:"relative"}}>
-          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center"}}>🎮</div>}
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.8) 0%,transparent 50%)"}}/>
-          {g.status&&<div style={{position:"absolute",top:3,left:3,padding:"1px 5px",borderRadius:6,background:SC[g.status]?.c||"#fff",fontSize:6,fontWeight:900,color:"#0f0c19"}}>{SC[g.status]?.l}</div>}
-          <div style={{position:"absolute",bottom:4,left:4,right:4}}><div style={{fontSize:9,fontWeight:700,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.game_title}</div>
-            {g.my_rating&&<span style={{fontSize:8,color:"#fde68a"}}>★ {g.my_rating}</span>}</div></div>)}</div></div>}
+      <div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:6}}>
+        {gs.map(g=><div key={g.game_id} style={{textAlign:"center"}}>
+          <div style={{borderRadius:8,overflow:"hidden",aspectRatio:"2/3",position:"relative",marginBottom:3}}>
+            {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🎮</div>}
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 40%)"}}/>
+            {g.status&&<div style={{position:"absolute",top:2,left:2,padding:"1px 4px",borderRadius:4,background:SC[g.status]?.c||"#fff",fontSize:5,fontWeight:900,color:"#0f0c19"}}>{SC[g.status]?.l}</div>}
+            {g.my_rating&&<div style={{position:"absolute",bottom:2,right:2,fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
+          </div>
+          <div style={{fontSize:8,fontWeight:600,lineHeight:1.2,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.game_title}</div>
+        </div>)}</div></div>}
 
     {flM&&<FLM userId={viewId} type={flM} onClose={()=>setFlM(null)} m={m} goUser={goUser}/>}
   </div>};
@@ -469,5 +482,5 @@ export default function App(){
         <span style={{fontSize:18,opacity:pg===n.id?1:.2}}>{n.i}</span>
         <span style={{fontSize:8,fontWeight:800,color:pg===n.id?"#67e8f9":"rgba(255,255,255,.15)"}}>{n.l}</span></div>)}</div>}
 
-    {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV}/>}
+    {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)}/>}
   </div>}
