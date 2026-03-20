@@ -140,7 +140,7 @@ const Auth=({onClose,onAuth})=>{const[mode,setMode]=useState("login");const[emai
     <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:400,padding:"40px 32px",background:"rgba(30,27,46,.8)",animation:"slideUp .25s ease"}}>
       {sent?<div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>✉️</div><h2 style={{fontSize:22,fontWeight:800}}>Check your inbox</h2><p style={{color:"rgba(255,255,255,.5)",fontSize:14,marginTop:8}}>Link sent to <span style={{color:"#67e8f9"}}>{email}</span></p>
         <button onClick={onClose} style={{marginTop:24,padding:"12px 28px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>Got it</button></div>
-      :<><h2 style={{fontFamily:"'Outfit'",fontSize:28,fontWeight:900,marginBottom:4}}>{mode==="login"?"Welcome back":"Join Gameboxed"}</h2>
+      :<><h2 style={{fontFamily:"'Outfit'",fontSize:28,fontWeight:900,marginBottom:4}}>{mode==="login"?"Welcome back":"Join GameBoxd"}</h2>
         <p style={{color:"rgba(255,255,255,.35)",fontSize:14,marginBottom:28}}>{mode==="login"?"Sign in to continue":"Create your account"}</p>
         {err&&<div style={{padding:"12px",borderRadius:10,background:"rgba(253,164,175,.08)",border:"1px solid rgba(253,164,175,.15)",color:"#fda4af",fontSize:13,marginBottom:14}}>{err}</div>}
         {mode==="signup"&&<input placeholder="Name" value={name} onChange={e=>setName(e.target.value)} style={inp}/>}
@@ -498,7 +498,9 @@ export default function App(){
     {/* Nav */}
     {!m&&<nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(15,12,25,.8)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,.04)",padding:"0 28px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:24}}>
-        <span onClick={()=>{setPg("home");setQ("");setViewUID(null)}} style={{fontFamily:"'Outfit'",fontSize:18,fontWeight:900,cursor:"pointer",background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>gameboxed</span>
+        <span onClick={()=>{setPg("home");setQ("");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <svg width="32" height="32" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/><polygon points="22,4 18,11 26,11" fill="#0f0c19" opacity=".2"/><polygon points="22,40 18,33 26,33" fill="#0f0c19" opacity=".2"/><polygon points="4,22 11,18 11,26" fill="#0f0c19" opacity=".2"/><polygon points="40,22 33,18 33,26" fill="#0f0c19" opacity=".2"/></svg>
+          <span style={{fontFamily:"'Outfit'",fontSize:18,fontWeight:900,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GameBoxd</span></span>
         <div style={{display:"flex",gap:2}}>{NAV.filter(n=>n.id!=="profile").map(n=><button key={n.id} onClick={()=>{setPg(n.id);setQ("");setViewUID(null)}} style={{padding:"6px 14px",borderRadius:20,border:"none",background:pg===n.id?"rgba(255,255,255,.06)":"transparent",color:pg===n.id?"#fff":"rgba(255,255,255,.3)",cursor:"pointer",fontSize:12,fontWeight:700}}>{n.l}</button>)}</div></div>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <div style={{position:"relative"}}><input placeholder="Search..." value={q} onChange={e=>{setQ(e.target.value);if(e.target.value){setPg("search");setViewUID(null)}}}
@@ -512,7 +514,9 @@ export default function App(){
         <input autoFocus placeholder="Search..." value={q} onChange={e=>{setQ(e.target.value);if(e.target.value){setPg("search");setViewUID(null)}}}
           style={{flex:1,padding:"8px 14px",borderRadius:14,...glass,color:"#fff",fontSize:14,outline:"none"}}/>
         <span onClick={()=>{setQO(false);setQ("");setPg("home")}} style={{color:"#67e8f9",fontSize:12,fontWeight:700,cursor:"pointer"}}>✕</span></div>
-      :<><span onClick={()=>{setPg("home");setViewUID(null)}} style={{fontFamily:"'Outfit'",fontSize:16,fontWeight:900,cursor:"pointer",background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>gameboxed</span>
+      :<><span onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+          <svg width="24" height="24" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/><polygon points="22,4 18,11 26,11" fill="#0f0c19" opacity=".2"/><polygon points="22,40 18,33 26,33" fill="#0f0c19" opacity=".2"/><polygon points="4,22 11,18 11,26" fill="#0f0c19" opacity=".2"/><polygon points="40,22 33,18 33,26" fill="#0f0c19" opacity=".2"/></svg>
+          <span style={{fontFamily:"'Outfit'",fontSize:15,fontWeight:900,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GameBoxd</span></span>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span onClick={()=>{setQO(true);setPg("search");setViewUID(null)}} style={{fontSize:15,cursor:"pointer",color:"rgba(255,255,255,.3)"}}>🔍</span>
           {user?<Av url={prof?.avatar_url} name={dn} size={26} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>

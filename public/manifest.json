@@ -1,6 +1,6 @@
 {
-  "name": "Gameboxed",
-  "short_name": "Gameboxed",
+  "name": "GameBoxd",
+  "short_name": "GameBoxd",
   "description": "Your Gaming Diary - Track, Rate, Review",
   "start_url": "/",
   "display": "standalone",
