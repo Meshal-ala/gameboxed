@@ -44,6 +44,8 @@ const getFollowersList=async u=>{const{data}=await supabase.from("follows").sele
 const getFollowingList=async u=>{const{data}=await supabase.from("follows").select("following_id").eq("follower_id",u);if(!data?.length)return[];const{data:p}=await supabase.from("profiles").select("*").in("id",data.map(r=>r.following_id));return p||[]};
 const getUserActs=async u=>{const{data}=await supabase.from("activities").select("*").eq("user_id",u).order("created_at",{ascending:false}).limit(15);return data||[]};
 const getUserRevs=async u=>{const{data}=await supabase.from("reviews").select("*").eq("user_id",u).order("created_at",{ascending:false}).limit(20);return data||[]};
+const deleteRev=async id=>{await supabase.from("reviews").delete().eq("id",id)};
+const updateRev=async(id,fields)=>{await supabase.from("reviews").update(fields).eq("id",id)};
 
 /* FIXED Avatar — single path, always overwrite */
 const avUrl=(url,v)=>url?`${SU}/storage/v1/object/public/avatars/${url}?v=${v||1}`:null;
@@ -299,7 +301,7 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
 const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,myLists,reloadLists,setSel})=>{
   const[p,setP]=useState(null);const[fc,setFc]=useState({followers:0,following:0});const[gs,setGs]=useState([]);const[acts,setActs]=useState([]);const[revs,setRevs]=useState([]);const[isF,setIsF]=useState(false);const[ld,setLd]=useState(true);const[flM,setFlM]=useState(null);
   const[favs,setFavs]=useState([]);const[editListId,setEditListId]=useState(null);const[editListName,setEditListName]=useState("");const[nLN,setNLN]=useState("");
-  const[tab,setTab]=useState("profile");
+  const[tab,setTab]=useState("profile");const[editRevId,setEditRevId]=useState(null);const[editRevText,setEditRevText]=useState("");const[editRevRating,setEditRevRating]=useState(0);
   const isSelf=me?.id===viewId;
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}))}};
@@ -308,6 +310,8 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const doRenameList=async id=>{if(!editListName.trim())return;await renameList(id,editListName);setEditListId(null);reloadLists?.()};
   const doDeleteList=async id=>{await deleteList(id);reloadLists?.()};
   const doRemoveGameFromList=async(lid,gid)=>{await removeGameFromList(lid,gid);reloadLists?.()};
+  const doDeleteRev=async id=>{await deleteRev(id);setRevs(revs.filter(r=>r.id!==id))};
+  const doSaveRev=async id=>{await updateRev(id,{text:editRevText,rating:editRevRating});setRevs(revs.map(r=>r.id===id?{...r,text:editRevText,rating:editRevRating}:r));setEditRevId(null)};
   if(ld)return<Loader/>;
   const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
 
@@ -371,11 +375,12 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
     {/* ═ TAB: Games ═ */}
     {tab==="games"&&<div>
       {gs.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:5}}>
-        {gs.map(g=><div key={g.game_id} style={{borderRadius:5,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}>
+        {gs.map(g=>{const found=allGames.find(x=>x.id===g.game_id);const gObj=found||{id:g.game_id,t:g.game_title,img:g.game_img,y:"",genre:"",r:null,pf:[]};
+          return<div key={g.game_id} onClick={()=>setSel?.(gObj)} style={{borderRadius:5,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)",cursor:"pointer"}}>
           {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
           {g.status&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:SC[g.status]?.c||"#fff"}}/>}
           {g.my_rating&&<div style={{position:"absolute",top:2,right:2,padding:"1px 4px",borderRadius:3,background:"rgba(0,0,0,.7)",fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
-        </div>)}</div>
+        </div>})}</div>
       :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games yet</p>}
     </div>}
 
@@ -383,10 +388,21 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
     {tab==="reviews"&&<div>
       {revs.length>0?revs.map(r=><div key={r.id} style={{...glass,padding:14,borderRadius:14,marginBottom:8}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-          {r.game_img&&<div style={{width:36,height:48,borderRadius:5,overflow:"hidden",flexShrink:0}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+          {r.game_img&&<div onClick={()=>{const found=allGames.find(x=>x.id===r.game_id);if(found)setSel?.(found);else setSel?.({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{width:36,height:48,borderRadius:5,overflow:"hidden",flexShrink:0,cursor:"pointer"}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
           <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700}}>{r.game_title}</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={11} show/>}<span style={{fontSize:10,color:"rgba(255,255,255,.12)"}}>{tA(r.created_at)}</span></div></div></div>
-        <p style={{color:"rgba(255,255,255,.55)",fontSize:13,lineHeight:1.7,margin:0}}>{r.text}</p>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={11} show/>}<span style={{fontSize:10,color:"rgba(255,255,255,.12)"}}>{tA(r.created_at)}</span></div></div>
+          {isSelf&&editRevId!==r.id&&<div style={{display:"flex",gap:4}}>
+            <button onClick={()=>{setEditRevId(r.id);setEditRevText(r.text);setEditRevRating(parseFloat(r.rating)||0)}} style={{padding:"4px 8px",borderRadius:6,...glass,border:"none",color:"rgba(255,255,255,.3)",fontSize:9,cursor:"pointer"}}>✏️</button>
+            <button onClick={()=>doDeleteRev(r.id)} style={{padding:"4px 8px",borderRadius:6,...glass,border:"none",color:"#fda4af",fontSize:9,cursor:"pointer"}}>🗑️</button></div>}
+        </div>
+        {editRevId===r.id?<div>
+          <Stars rating={editRevRating} size={18} interactive onRate={setEditRevRating}/>
+          <textarea value={editRevText} onChange={e=>setEditRevText(e.target.value)} rows={3} style={{width:"100%",marginTop:8,padding:"10px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+          <div style={{display:"flex",gap:6,marginTop:6}}>
+            <button onClick={()=>doSaveRev(r.id)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Save</button>
+            <button onClick={()=>setEditRevId(null)} style={{padding:"8px 16px",borderRadius:8,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button></div>
+        </div>
+        :<p style={{color:"rgba(255,255,255,.55)",fontSize:13,lineHeight:1.7,margin:0}}>{r.text}</p>}
       </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No reviews yet</p>}
     </div>}
 
