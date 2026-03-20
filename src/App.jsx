@@ -21,6 +21,14 @@ const loadLists=async u=>{const{data}=await supabase.from("lists").select("*").e
 const createList=async(u,t)=>await supabase.from("lists").insert({user_id:u,title:t}).select().single();
 const addGameToList=async(listId,gameId)=>{const{data:list}=await supabase.from("lists").select("game_ids").eq("id",listId).single();const ids=list?.game_ids||[];if(!ids.includes(gameId)){await supabase.from("lists").update({game_ids:[...ids,gameId]}).eq("id",listId)}};
 const removeFromLib=async(uid,gameId)=>{await supabase.from("user_games").delete().eq("user_id",uid).eq("game_id",gameId)};
+const removeGameFromList=async(listId,gameId)=>{const{data:list}=await supabase.from("lists").select("game_ids").eq("id",listId).single();const ids=(list?.game_ids||[]).filter(id=>id!==gameId);await supabase.from("lists").update({game_ids:ids}).eq("id",listId)};
+const deleteList=async(listId)=>{await supabase.from("lists").delete().eq("id",listId)};
+const renameList=async(listId,title)=>{await supabase.from("lists").update({title}).eq("id",listId)};
+/* Favorites */
+const loadFavs=async uid=>{const{data}=await supabase.from("favorites").select("*").eq("user_id",uid).order("position");return data||[]};
+const addFav=async(uid,game)=>{const{data:existing}=await supabase.from("favorites").select("*").eq("user_id",uid);if((existing||[]).length>=4)return false;await supabase.from("favorites").insert({user_id:uid,game_id:game.id,game_title:game.t||game.title,game_img:game.img,position:(existing||[]).length});return true};
+const removeFav=async(uid,gameId)=>{await supabase.from("favorites").delete().eq("user_id",uid).eq("game_id",gameId)};
+const getUserFavs=async uid=>{const{data}=await supabase.from("favorites").select("*").eq("user_id",uid).order("position");return data||[]};
 const postAct=async(uid,act,g)=>{await supabase.from("activities").insert({user_id:uid,action:act,game_id:g?.id,game_title:g?.title||g?.t,game_img:g?.img,rating:g?.rating})};
 const loadFeed=async uid=>{const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",uid);const ids=[uid,...(fo||[]).map(f=>f.following_id)];const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").in("user_id",ids).order("created_at",{ascending:false}).limit(40);return data||[]};
 const loadAllFeed=async()=>{const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").order("created_at",{ascending:false}).limit(40);return data||[]};
@@ -233,7 +241,10 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
   const[det,setDet]=useState(null);const[ldg,setLdg]=useState(true);const d=ud[g.id]||{};
   const[mr,setMr]=useState(d.myRating||0);const[st,setSt]=useState(d.status||"");const[tab,setTab]=useState("about");
   const[rvs,setRvs]=useState([]);const[rt,setRt]=useState("");const[rr,setRr]=useState(0);const[posting,setPosting]=useState(false);const[showLists,setShowLists]=useState(false);const[addedList,setAddedList]=useState("");
-  useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs)},[g.id]);
+  const[isFav,setIsFav]=useState(false);const[favLd,setFavLd]=useState(false);
+  useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs);
+    if(me)getUserFavs(me.id).then(fs=>setIsFav(fs.some(f=>f.game_id===g.id)))},[g.id]);
+  const toggleFav=async()=>{if(!me){setSa(true);return}setFavLd(true);if(isFav){await removeFav(me.id,g.id);setIsFav(false)}else{const ok=await addFav(me.id,g);if(!ok)alert("Max 4 favorites!");else setIsFav(true)}setFavLd(false)};
   const sv=async(f,v)=>{if(!me){setSa(true);return}const nd={...d,[f]:v,title:g.t,img:g.img};if(f==="myRating"){setMr(v);await postAct(me.id,"rated",{id:g.id,title:g.t,img:g.img,rating:v})}if(f==="status"){setSt(v);await postAct(me.id,v==="completed"?"completed":v==="playing"?"started":"added to "+v,{id:g.id,title:g.t,img:g.img})}
     setUd({...ud,[g.id]:nd});await stc(me.id,g.id,nd);refresh?.()};
   const removeGame=async()=>{if(!me)return;await removeFromLib(me.id,g.id);const n={...ud};delete n[g.id];setUd(n);setSt("");setMr(0);refresh?.()};
@@ -249,10 +260,12 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
         <div style={{position:"absolute",bottom:16,left:m?16:24}}><h2 style={{fontFamily:"'Outfit'",fontSize:m?24:32,fontWeight:900}}>{g.t}</h2>
           <div style={{color:"rgba(255,255,255,.4)",fontSize:13,marginTop:3}}>{g.y} · {g.genre}</div></div></div>
       <div style={{padding:m?"14px 16px 36px":"20px 24px 28px"}}>
-        <div style={{display:"flex",gap:12,marginBottom:18}}>
-          {g.r&&<div style={{...glass,padding:"12px 16px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>COMMUNITY</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginTop:4}}><span style={{color:"#fde68a",fontSize:18}}>★</span><span style={{fontSize:22,fontWeight:900}}>{g.r}</span></div></div>}
-          {g.mc&&<div style={{...glass,padding:"12px 16px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>METACRITIC</div><div style={{fontSize:22,fontWeight:900,marginTop:4,color:g.mc>=75?"#6ee7b7":"#fde68a"}}>{g.mc}</div></div>}
-          <div style={{...glass,padding:"12px 16px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>YOUR SCORE</div><div style={{fontSize:22,fontWeight:900,marginTop:4,color:"#67e8f9"}}>{mr||"—"}</div></div></div>
+        {/* Favorite + Scores row */}
+        <div style={{display:"flex",gap:10,marginBottom:14,alignItems:"center"}}>
+          <button onClick={toggleFav} disabled={favLd} style={{padding:"10px 14px",borderRadius:14,...glass,border:isFav?"2px solid #fde68a":"1px solid rgba(255,255,255,.06)",color:isFav?"#fde68a":"rgba(255,255,255,.25)",fontSize:20,cursor:"pointer",flexShrink:0,background:isFav?"rgba(253,230,138,.08)":"rgba(255,255,255,.03)",transition:"all .15s"}} title={isFav?"Remove from favorites":"Add to favorites (max 4)"}>⭐</button>
+          {g.r&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>COMMUNITY</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}><span style={{color:"#fde68a",fontSize:16}}>★</span><span style={{fontSize:20,fontWeight:900}}>{g.r}</span></div></div>}
+          {g.mc&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>METACRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:g.mc>=75?"#6ee7b7":"#fde68a"}}>{g.mc}</div></div>}
+          <div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>YOURS</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:"#67e8f9"}}>{mr||"—"}</div></div></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>STATUS</div>
@@ -282,16 +295,21 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
       </div></div></div>};
 
 /* ═══ PROFILE PAGE (full page — for both self and others) ═══ */
-const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames})=>{
+const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,myLists,reloadLists,setSel})=>{
   const[p,setP]=useState(null);const[fc,setFc]=useState({followers:0,following:0});const[gs,setGs]=useState([]);const[acts,setActs]=useState([]);const[isF,setIsF]=useState(false);const[ld,setLd]=useState(true);const[flM,setFlM]=useState(null);
+  const[favs,setFavs]=useState([]);const[editListId,setEditListId]=useState(null);const[editListName,setEditListName]=useState("");const[nLN,setNLN]=useState("");
   const isSelf=me?.id===viewId;
-  useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
+  const reload=async()=>{const[pr,c,g,a,f]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);if(me&&!isSelf)setIsF(await chkF(me.id,viewId))};
+  useEffect(()=>{(async()=>{setLd(true);await reload();setLd(false)})()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}))}};
-  const top5=gs.filter(g=>g.my_rating).sort((a,b)=>b.my_rating-a.my_rating).slice(0,5);
+  const rmFav=async gid=>{await removeFav(viewId,gid);setFavs(favs.filter(f=>f.game_id!==gid))};
+  const hcl=async()=>{if(!nLN.trim()||!me)return;await createList(me.id,nLN);setNLN("");reloadLists?.()};
+  const doRenameList=async(id)=>{if(!editListName.trim())return;await renameList(id,editListName);setEditListId(null);reloadLists?.()};
+  const doDeleteList=async(id)=>{await deleteList(id);reloadLists?.()};
+  const doRemoveGameFromList=async(listId,gameId)=>{await removeGameFromList(listId,gameId);reloadLists?.()};
   if(ld)return<Loader/>;
 
   return<div style={{animation:"fadeIn .15s"}}>
-    {/* Cover */}
     <div style={{height:m?90:130,borderRadius:20,background:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",marginBottom:m?-30:-40,position:"relative"}}/>
     <div style={{display:"flex",alignItems:m?"center":"flex-start",gap:m?14:20,marginBottom:24,flexDirection:m?"column":"row",position:"relative",padding:m?"0 12px":"0 20px"}}>
       <Av url={p?.avatar_url} name={p?.display_name} size={m?80:96} v={avV}/>
@@ -303,31 +321,62 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames}
           <div><span style={{fontWeight:900}}>{gs.length}</span> <span style={{color:"rgba(255,255,255,.2)",fontSize:12}}>games</span></div>
           <div onClick={()=>setFlM("followers")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.followers}</span> <span style={{color:"#67e8f9",fontSize:12}}>followers</span></div>
           <div onClick={()=>setFlM("following")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.following}</span> <span style={{color:"#67e8f9",fontSize:12}}>following</span></div></div>
-        <div style={{display:"flex",gap:6,marginTop:10,justifyContent:m?"center":"flex-start"}}>
+        <div style={{display:"flex",gap:6,marginTop:10,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
           {isSelf?<><button onClick={onEdit} style={{padding:"8px 18px",borderRadius:12,...glass,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
             <button onClick={onSteam} style={{padding:"8px 18px",borderRadius:12,...glass,color:"#67e8f9",fontSize:12,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Steam Linked":"🎮 Link Steam"}</button>
             <button onClick={onSignOut} style={{padding:"8px 18px",borderRadius:12,...glass,color:"#fda4af",fontSize:12,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
           :me&&<button onClick={tog} style={{padding:"9px 28px",borderRadius:12,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>}
         </div></div></div>
 
-    {/* Favorite Games — Letterboxd exact: 4 clean posters, gold bottom bar, no text */}
-    {top5.length>0&&<div style={{marginBottom:24}}><div className="sec-title">FAVORITE GAMES</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,maxWidth:m?200:280}}>
-        {top5.slice(0,4).map(g=><div key={g.game_id} style={{borderRadius:4,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 2px 8px rgba(0,0,0,.3)",border:"1px solid rgba(255,255,255,.06)"}}>
-          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
-          <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:"#fde68a"}}/>
-        </div>)}</div></div>}
+    {/* ★ FAVORITE GAMES — centered, bigger */}
+    {favs.length>0&&<div style={{marginBottom:28,textAlign:"center"}}><div className="sec-title" style={{justifyContent:"center"}}>⭐ FAVORITE GAMES</div>
+      <div style={{display:"flex",gap:m?8:12,justifyContent:"center",flexWrap:"wrap"}}>
+        {favs.map(f=><div key={f.game_id} style={{width:m?70:100,position:"relative"}}>
+          <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 16px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.15)"}}>
+            {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
+          <div style={{fontSize:m?8:10,fontWeight:700,marginTop:4,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.game_title}</div>
+          {isSelf&&<button onClick={()=>rmFav(f.game_id)} style={{position:"absolute",top:-4,right:-4,width:18,height:18,borderRadius:9,background:"#fda4af",border:"none",color:"#0f0c19",fontSize:10,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+        </div>)}</div>
+      {isSelf&&favs.length<4&&<p style={{fontSize:10,color:"rgba(255,255,255,.15)",marginTop:6}}>Open a game and click ⭐ to add up to 4 favorites</p>}</div>}
+    {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 24px",...glass,borderRadius:16,marginBottom:24}}>
+      <div style={{fontSize:24,marginBottom:6}}>⭐</div><p style={{color:"rgba(255,255,255,.2)",fontSize:12}}>No favorite games yet — open a game and click ⭐ to showcase up to 4</p></div>}
 
-    {/* Recent Activity — Letterboxd diary style: date | poster | title | stars */}
-    {acts.length>0&&<div style={{marginBottom:24}}><div className="sec-title">RECENT ACTIVITY</div>
-      {acts.slice(0,8).map(a=><div key={a.id} style={{display:"grid",gridTemplateColumns:"44px 32px 1fr auto",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}>
-        <span style={{fontSize:10,color:"rgba(255,255,255,.15)",textAlign:"right"}}>{tA(a.created_at)}</span>
-        {a.game_img?<div style={{width:32,height:44,borderRadius:3,overflow:"hidden"}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>:<div style={{width:32,height:44,borderRadius:3,background:"#1e1b2e"}}/>}
-        <div><div style={{fontSize:12,fontWeight:600,lineHeight:1.2}}>{a.game_title}</div><div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:1}}>{a.action}</div></div>
-        {a.action==="rated"&&a.rating?<Stars rating={a.rating} size={8}/>:<span/>}
+    {/* Activity */}
+    {acts.length>0&&<div style={{marginBottom:24}}><div className="sec-title">⚡ RECENT ACTIVITY</div>
+      {acts.slice(0,8).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:12}}>
+        <span style={{fontSize:10,color:"rgba(255,255,255,.12)",width:30,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
+        {a.game_img&&<div style={{width:28,height:38,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+        <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.game_title}</div><div style={{fontSize:9,color:"rgba(255,255,255,.2)"}}>{a.action}</div></div>
+        {a.action==="rated"&&a.rating?<Stars rating={a.rating} size={8}/>:null}
       </div>)}</div>}
 
-    {/* Games */}
+    {/* Lists — full working */}
+    {(isSelf||(myLists||[]).length>0)&&<div style={{marginBottom:24}}><div className="sec-title">📝 LISTS</div>
+      {(isSelf?myLists||[]:[]).map(l=><div key={l.id} style={{...glass,borderRadius:14,padding:"14px 16px",marginBottom:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:(l.game_ids?.length)?8:0}}>
+          {editListId===l.id?<><input value={editListName} onChange={e=>setEditListName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doRenameList(l.id)} style={{flex:1,padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,.1)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none"}}/>
+            <button onClick={()=>doRenameList(l.id)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"#67e8f9",color:"#0f0c19",fontSize:10,fontWeight:800,cursor:"pointer"}}>Save</button>
+            <button onClick={()=>setEditListId(null)} style={{padding:"4px 10px",borderRadius:6,...glass,color:"rgba(255,255,255,.4)",fontSize:10,fontWeight:700,cursor:"pointer",border:"none"}}>Cancel</button></>
+          :<><span style={{fontSize:14,fontWeight:700,flex:1}}>📝 {l.title}</span><span style={{fontSize:10,color:"rgba(255,255,255,.15)"}}>{l.game_ids?.length||0} games</span>
+            <button onClick={()=>{setEditListId(l.id);setEditListName(l.title)}} style={{padding:"3px 8px",borderRadius:6,...glass,border:"none",color:"rgba(255,255,255,.3)",fontSize:9,fontWeight:700,cursor:"pointer"}}>✏️</button>
+            <button onClick={()=>doDeleteList(l.id)} style={{padding:"3px 8px",borderRadius:6,...glass,border:"none",color:"#fda4af",fontSize:9,fontWeight:700,cursor:"pointer"}}>🗑️</button></>}
+        </div>
+        {l.game_ids?.length>0&&<div style={{display:"flex",gap:4,overflowX:"auto"}} className="hs">
+          {l.game_ids.map(gid=>{const found=allGames.find(x=>x.id===gid);const gData=gs.find(x=>x.game_id===gid);const img=found?.img||gData?.game_img;const title=found?.t||gData?.game_title||"Game";
+            return<div key={gid} style={{minWidth:48,flexShrink:0,position:"relative"}}>
+              <div onClick={()=>{if(found)setSel?.(found)}} style={{borderRadius:4,overflow:"hidden",aspectRatio:"2/3",cursor:found?"pointer":"default"}}>
+                {img?<img src={img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🎮</div>}</div>
+              {isSelf&&<button onClick={()=>doRemoveGameFromList(l.id,gid)} style={{position:"absolute",top:-3,right:-3,width:14,height:14,borderRadius:7,background:"#fda4af",border:"none",color:"#0f0c19",fontSize:8,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+            </div>})}
+        </div>}
+      </div>)}
+      {isSelf&&<div style={{display:"flex",gap:6,marginTop:6}}>
+        <input placeholder="New list name..." value={nLN} onChange={e=>setNLN(e.target.value)} onKeyDown={e=>e.key==="Enter"&&hcl()}
+          style={{flex:1,padding:"10px 14px",borderRadius:12,...glass,color:"#fff",fontSize:13,outline:"none"}}/>
+        <button onClick={hcl} style={{padding:"10px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Create</button></div>}
+    </div>}
+
+    {/* Games grid */}
     {gs.length>0&&<div><div className="sec-title">🎮 GAMES ({gs.length})</div>
       <div style={{display:"grid",gridTemplateColumns:m?"repeat(5,1fr)":"repeat(auto-fill,minmax(60px,1fr))",gap:4}}>
         {gs.map(g=><div key={g.game_id} style={{borderRadius:4,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}>
@@ -521,18 +570,12 @@ export default function App(){
       {/* VIEW OTHER USER — full page */}
       {pg==="viewuser"&&viewUID&&<div style={{animation:"fadeIn .15s"}}>
         <button onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 12px",borderRadius:10,...glass,color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer",marginBottom:12,border:"none"}}>← Back</button>
-        <ProfilePage viewId={viewUID} me={user} m={m} ud={ud} goUser={goUser} avV={avV} allGames={all}/>
+        <ProfilePage viewId={viewUID} me={user} m={m} ud={ud} goUser={goUser} avV={avV} allGames={all} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} setSel={setSel}/>
       </div>}
 
       {/* MY PROFILE — full page */}
       {pg==="profile"&&user&&<div style={{animation:"fadeIn .15s"}}>
-        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all}/>
-        {/* Lists section */}
-        <div style={{marginTop:24}}><div className="sec-title">📝 LISTS</div>
-          {myL.map(l=><div key={l.id} style={{...glass,padding:"12px 14px",borderRadius:12,marginBottom:5,fontSize:14,fontWeight:700}}>📝 {l.title}</div>)}
-          <div style={{display:"flex",gap:6,marginTop:8}}><input placeholder="New list..." value={nLN} onChange={e=>setNLN(e.target.value)} onKeyDown={e=>e.key==="Enter"&&hcl()}
-            style={{flex:1,padding:"10px 14px",borderRadius:12,...glass,color:"#fff",fontSize:13,outline:"none"}}/>
-            <button onClick={hcl} style={{padding:"10px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Create</button></div></div>
+        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all} myLists={myL} reloadLists={()=>loadLists(user.id).then(setMyL)} setSel={setSel}/>
       </div>}
 
       {/* STATS */}
