@@ -111,11 +111,26 @@ const Av=({url,name,size=32,onClick,v})=>{const s=avUrl(url,v);return<div onClic
 const coverCache={};
 const getSteamCover=async(name)=>{if(!name)return null;const k=name.toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
   try{const r=await fetch(`/api/steam?action=cover&name=${encodeURIComponent(name)}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
-const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(rawgImg);
-  useEffect(()=>{let c=true;if(name){const k=name.toLowerCase();if(coverCache[k]){setSrc(coverCache[k])}else if(coverCache[k]===null){setSrc(rawgImg)}else{getSteamCover(name).then(u=>{if(c&&u)setSrc(u)})}}return()=>{c=false}},[name]);return src};
+const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(rawgImg);const[tried,setTried]=useState(false);
+  useEffect(()=>{let c=true;setSrc(rawgImg);setTried(false);
+    if(name){const k=name.toLowerCase();if(coverCache[k]){setSrc(coverCache[k])}else if(coverCache[k]===null){/*no steam cover*/}else{getSteamCover(name).then(u=>{if(c&&u)setSrc(u);setTried(true)})}}
+    return()=>{c=false}},[name,rawgImg]);return[src,(coverCache[name?.toLowerCase()]===null)||tried]};
+
+/* Platform icons */
+const PlatIcon=({name,size=14})=>{const icons={PC:"🖥️",PS:"🎮",Xbox:"🟢",Switch:"🔴"};
+  return<span style={{fontSize:size}} title={name}>{icons[name]||"🎮"}</span>};
+
+/* Favorite Card with cover */
+const FavCard=({fav,onClick,m})=>{const[cover]=useCover(fav.game_title,fav.game_img);
+  return<div onClick={onClick} style={{width:m?75:130,cursor:"pointer"}}>
+    <div style={{borderRadius:m?8:10,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 20px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.1)",transition:"transform .2s"}}
+      onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="scale(1.03)"}} onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="scale(1)"}}>
+      {cover?<img src={cover} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
+    <div style={{fontSize:m?9:11,fontWeight:600,marginTop:5,lineHeight:1.3,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fav.game_title}</div>
+  </div>};
 
 const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState(false);const[vis,setVis]=useState(false);const[err,setErr]=useState(false);
-  const cover=useCover(big?null:g.t,g.img);// Only fetch covers for non-big cards (portrait)
+  const[cover]=useCover(big?null:g.t,g.img);// Only fetch covers for non-big cards (portrait)
   useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);const u=ud?.[g.id];
   return<div onClick={()=>onClick?.(g)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
     style={{borderRadius:big?20:14,overflow:"hidden",cursor:"pointer",position:"relative",aspectRatio:big?"16/9":"2/3",
@@ -132,6 +147,7 @@ const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState
       {big&&<div style={{display:"inline-block",padding:"3px 10px",borderRadius:20,background:"linear-gradient(135deg,#67e8f9,#818cf8)",fontSize:9,fontWeight:800,color:"#0f0c19",marginBottom:6}}>TRENDING</div>}
       <h3 style={{fontSize:big?22:13,fontWeight:big?900:700,margin:0,lineHeight:1.2,color:"#fff"}}>{g.t}</h3>
       <div style={{fontSize:big?12:8,color:"rgba(255,255,255,.4)",marginTop:big?6:3}}>{g.y}{big&&g.genre?" · "+g.genre:""}</div>
+      {!big&&g.pf?.length>0&&<div style={{display:"flex",gap:2,marginTop:2}}>{g.pf.slice(0,3).map((p,i)=><span key={i} style={{fontSize:6,fontWeight:800,padding:"1px 3px",borderRadius:3,background:"rgba(255,255,255,.06)",color:p.c}}>{p.n}</span>)}</div>}
     </div></div>};
 
 const TC=({game:g,onClick,delay=0,m,ud})=>{const[vis,setVis]=useState(false);
@@ -282,7 +298,11 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,#16132a 0%,transparent 100%)"}}/>
         {!m&&<button onClick={onClose} style={{position:"absolute",top:14,right:14,width:34,height:34,borderRadius:12,...glass,background:"rgba(15,12,25,.6)",border:"none",color:"#fff",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
         <div style={{position:"absolute",bottom:16,left:m?16:24}}><h2 style={{fontFamily:"'Outfit'",fontSize:m?24:32,fontWeight:900}}>{g.t}</h2>
-          <div style={{color:"rgba(255,255,255,.4)",fontSize:13,marginTop:3}}>{g.y} · {g.genre}</div></div></div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+            <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{g.y}{g.genre?" · "+g.genre:""}</span>
+            {g.pf?.length>0&&<><span style={{color:"rgba(255,255,255,.1)"}}>·</span><div style={{display:"flex",gap:4}}>
+              {g.pf.map((p,i)=><span key={i} style={{padding:"2px 8px",borderRadius:6,background:"rgba(255,255,255,.08)",fontSize:9,fontWeight:800,color:p.c,backdropFilter:"blur(8px)"}}>{p.n}</span>)}</div></>}
+          </div></div></div>
       <div style={{padding:m?"14px 16px 36px":"20px 24px 28px"}}>
         {/* Favorite + Scores row */}
         <div style={{display:"flex",gap:10,marginBottom:14,alignItems:"center"}}>
@@ -376,12 +396,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       {favs.length>0&&<div style={{marginBottom:28,textAlign:"center"}}><div className="sec-title" style={{justifyContent:"center"}}>⭐ FAVORITE GAMES</div>
         <div style={{display:"flex",gap:m?8:12,justifyContent:"center"}}>
           {favs.map(f=>{const gObj=allGames.find(x=>x.id===f.game_id)||{id:f.game_id,t:f.game_title,img:f.game_img,y:"",genre:"",r:null,pf:[]};
-            return<div key={f.game_id} onClick={()=>setSel?.(gObj)} style={{width:m?75:130,cursor:"pointer"}}>
-              <div style={{borderRadius:m?8:10,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 20px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.1)",transition:"transform .2s"}}
-                onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="scale(1.03)"}} onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="scale(1)"}}>
-                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
-              <div style={{fontSize:m?9:11,fontWeight:600,marginTop:5,lineHeight:1.3,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.game_title}</div>
-            </div>})}</div></div>}
+            return<FavCard key={f.game_id} fav={f} onClick={()=>setSel?.(gObj)} m={m}/>})}</div></div>}
       {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 20px",...glass,borderRadius:14,marginBottom:20}}>
         <div style={{fontSize:20,marginBottom:4}}>⭐</div><p style={{color:"rgba(255,255,255,.15)",fontSize:11}}>Open a game and click ⭐ to showcase up to 4 favorites</p></div>}
 
