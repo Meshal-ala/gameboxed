@@ -240,13 +240,21 @@ const FLM=({userId,type,onClose,m,goUser})=>{const[list,setList]=useState([]);co
         :<p style={{textAlign:"center",padding:24,color:"rgba(255,255,255,.2)"}}>No {type} yet</p>}</div></div></div>};
 
 /* Game Detail */
-const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,reloadLists})=>{
+const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,reloadLists,userProf})=>{
   const[det,setDet]=useState(null);const[ldg,setLdg]=useState(true);const d=ud[g.id]||{};
   const[mr,setMr]=useState(d.myRating||0);const[st,setSt]=useState(d.status||"");const[tab,setTab]=useState("about");
   const[rvs,setRvs]=useState([]);const[rt,setRt]=useState("");const[rr,setRr]=useState(0);const[posting,setPosting]=useState(false);const[showLists,setShowLists]=useState(false);const[addedList,setAddedList]=useState("");
   const[isFav,setIsFav]=useState(false);const[favLd,setFavLd]=useState(false);
+  const[ach,setAch]=useState(null);// {total,achieved,pct}
   useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs);
-    if(me)getUserFavs(me.id).then(fs=>setIsFav(fs.some(f=>f.game_id===g.id)))},[g.id]);
+    if(me){getUserFavs(me.id).then(fs=>setIsFav(fs.some(f=>f.game_id===g.id)));
+      // Fetch Steam achievements if user has steam linked
+      if(userProf?.steam_id){(async()=>{try{
+        // Try to find steam appid by searching game name on steam
+        const r=await fetch(`/api/steam?action=games&steamid=${userProf.steam_id}`);const d=await r.json();
+        const match=(d.games||[]).find(sg=>sg.name?.toLowerCase()===g.t?.toLowerCase());
+        if(match){const ar=await fetch(`/api/steam?action=achievements&steamid=${userProf.steam_id}&appid=${match.appid}`);const ad=await ar.json();if(ad.total>0)setAch(ad)}
+      }catch{}})()}}},[g.id]);
   const toggleFav=async()=>{if(!me){setSa(true);return}setFavLd(true);if(isFav){await removeFav(me.id,g.id);setIsFav(false)}else{const ok=await addFav(me.id,g);if(!ok)alert("Max 4 favorites!");else setIsFav(true)}setFavLd(false)};
   const sv=async(f,v)=>{if(!me){setSa(true);return}const nd={...d,[f]:v,title:g.t,img:g.img};if(f==="myRating"){setMr(v);await postAct(me.id,"rated",{id:g.id,title:g.t,img:g.img,rating:v})}if(f==="status"){setSt(v);await postAct(me.id,v==="completed"?"completed":v==="playing"?"started":"added to "+v,{id:g.id,title:g.t,img:g.img})}
     setUd({...ud,[g.id]:nd});await stc(me.id,g.id,nd);refresh?.()};
@@ -269,6 +277,16 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
           {g.r&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>COMMUNITY</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}><span style={{color:"#fde68a",fontSize:16}}>★</span><span style={{fontSize:20,fontWeight:900}}>{g.r}</span></div></div>}
           {g.mc&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>METACRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:g.mc>=75?"#6ee7b7":"#fde68a"}}>{g.mc}</div></div>}
           <div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>YOURS</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:"#67e8f9"}}>{mr||"—"}</div></div></div>
+        {/* 🏆 Steam Achievements */}
+        {ach&&<div style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16}}>🏆</span><span style={{fontSize:12,fontWeight:700,color:"#fde68a"}}>Steam Achievements</span></div>
+            <span style={{fontSize:12,fontWeight:800,color:ach.pct===100?"#6ee7b7":"#67e8f9"}}>{ach.achieved}/{ach.total} ({ach.pct}%)</span></div>
+          <div style={{width:"100%",height:8,background:"rgba(255,255,255,.04)",borderRadius:4,overflow:"hidden"}}>
+            <div style={{height:"100%",width:ach.pct+"%",background:ach.pct===100?"linear-gradient(90deg,#6ee7b7,#fde68a)":"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:4,transition:"width .6s ease"}}/>
+          </div>
+          {ach.pct===100&&<div style={{textAlign:"center",marginTop:6,fontSize:10,color:"#fde68a",fontWeight:700}}>🎉 100% Completed!</div>}
+        </div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>STATUS</div>
@@ -664,5 +682,5 @@ export default function App(){
         <span style={{fontSize:18,opacity:pg===n.id?1:.2}}>{n.i}</span>
         <span style={{fontSize:8,fontWeight:800,color:pg===n.id?"#67e8f9":"rgba(255,255,255,.15)"}}>{n.l}</span></div>)}</div>}
 
-    {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)}/>}
+    {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} userProf={prof}/>}
   </div>}
