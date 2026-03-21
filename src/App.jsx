@@ -128,7 +128,7 @@ const TC=({game:g,onClick,delay=0,m,ud})=>{const[vis,setVis]=useState(false);
   useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);
   return<div onClick={()=>onClick?.(g)} style={{opacity:vis?1:0,transform:vis?"none":"translateY(6px)",transition:"all .2s",cursor:"pointer",textAlign:"center"}}>
     <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1",marginBottom:4,position:"relative",boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
-      {g.img?<img src={g.img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
+      {g.img?<img src={g.img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
       <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 50%)"}}/>
     </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.t}</div></div>};
 
@@ -176,13 +176,16 @@ const SteamModal=({onClose,userId,onDone})=>{const[input,setInput]=useState("");
   const lookup=async()=>{setLd(true);try{const sid=await resolveSteamId(input.trim());if(!sid){alert("Steam ID not found");setLd(false);return}
     const[prof,gd]=await Promise.all([getSteamProfile(sid),getSteamGames(sid)]);
     setSteamProf({...prof,steamid:sid});setGames(gd.games||[]);setStep("confirm");setLd(false)}catch(e){alert("Error: "+e.message);setLd(false)}};
-  const doImport=async()=>{setStep("importing");setTotal(Math.min(games.length,50));
+  const doImport=async()=>{setStep("importing");
+    const allGamesToImport=games.filter(g=>g.playtime>0);
+    setTotal(allGamesToImport.length);
     const sid=steamProf.steamid;await saveProf(userId,{steam_id:sid});
-    const toImport=games.slice(0,50);
-    for(let i=0;i<toImport.length;i++){setProgress(i+1);const g=toImport[i];
+    let imported=0;
+    for(let i=0;i<allGamesToImport.length;i++){setProgress(i+1);const g=allGamesToImport[i];
       try{const sr=await fetch(`${AP}/games?key=${AK}&search=${encodeURIComponent(g.name)}&page_size=1&search_precise=true`);const sd=await sr.json();const match=sd.results?.[0];
         if(match){const{data:ex}=await supabase.from("user_games").select("id").eq("user_id",userId).eq("game_id",match.id).single();
-          if(!ex)await supabase.from("user_games").insert({user_id:userId,game_id:match.id,game_title:match.name,game_img:match.background_image,status:g.playtime>120?"completed":g.playtime>30?"playing":"backlog",my_rating:null});
+          if(!ex){await supabase.from("user_games").insert({user_id:userId,game_id:match.id,game_title:match.name,game_img:match.background_image,status:g.playtime>120?"completed":g.playtime>30?"playing":"backlog",my_rating:null,steam_appid:g.appid,steam_playtime:g.playtime});imported++}
+          else{await supabase.from("user_games").update({steam_appid:g.appid,steam_playtime:g.playtime}).eq("id",ex.id)}
         }}catch{}}
     setStep("done");await onDone()};
   const inp={width:"100%",padding:"14px 16px",borderRadius:12,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:14,outline:"none"};
@@ -204,7 +207,7 @@ const SteamModal=({onClose,userId,onDone})=>{const[input,setInput]=useState("");
         <div style={{...glass,padding:16,borderRadius:14,marginBottom:16}}>
           <div style={{fontSize:28,fontWeight:900,color:"#67e8f9",textAlign:"center"}}>{games.length}</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,.3)",textAlign:"center"}}>games found</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:4}}>We'll import up to 50 most played games</div></div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:4}}>We'll import all games you've played</div></div>
         <div style={{maxHeight:150,overflow:"auto",marginBottom:14}} className="hs">
           {games.slice(0,10).map(g=><div key={g.appid} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}>
             <img src={g.header} alt="" style={{width:80,height:30,borderRadius:4,objectFit:"cover"}}/>
@@ -366,7 +369,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
             return<div key={f.game_id} onClick={()=>setSel?.(gObj)} style={{width:m?75:130,cursor:"pointer"}}>
               <div style={{borderRadius:m?8:10,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 20px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.1)",transition:"transform .2s"}}
                 onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="scale(1.03)"}} onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="scale(1)"}}>
-                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
+                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
               <div style={{fontSize:m?9:11,fontWeight:600,marginTop:5,lineHeight:1.3,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.game_title}</div>
             </div>})}</div></div>}
       {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 20px",...glass,borderRadius:14,marginBottom:20}}>
@@ -376,7 +379,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       {acts.length>0&&<div style={{marginBottom:20}}><div className="sec-title">RECENT ACTIVITY</div>
         {acts.slice(0,5).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
           <span style={{fontSize:9,color:"rgba(255,255,255,.1)",width:24,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
-          {a.game_img&&<div style={{width:24,height:32,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+          {a.game_img&&<div style={{width:24,height:32,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
           <div style={{flex:1,minWidth:0}}><span style={{fontWeight:600}}>{a.game_title}</span> <span style={{color:"rgba(255,255,255,.15)"}}>{a.action}</span></div>
           {a.rating?<Stars rating={parseFloat(a.rating)} size={7}/>:null}
         </div>)}</div>}
@@ -385,7 +388,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       {revs.length>0&&<div><div className="sec-title">RECENT REVIEWS</div>
         {revs.slice(0,3).map(r=><div key={r.id} style={{...glass,padding:12,borderRadius:12,marginBottom:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-            {r.game_img&&<div style={{width:28,height:38,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+            {r.game_img&&<div style={{width:28,height:38,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
             <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{r.game_title}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={9}/>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div></div></div>
           <p style={{color:"rgba(255,255,255,.45)",fontSize:12,lineHeight:1.6,margin:0}}>{r.text}</p></div>)}</div>}
@@ -396,7 +399,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       {gs.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:5}}>
         {gs.map(g=>{const found=allGames.find(x=>x.id===g.game_id);const gObj=found||{id:g.game_id,t:g.game_title,img:g.game_img,y:"",genre:"",r:null,pf:[]};
           return<div key={g.game_id} onClick={()=>setSel?.(gObj)} style={{borderRadius:5,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)",cursor:"pointer"}}>
-          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
+          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
           {g.status&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:SC[g.status]?.c||"#fff"}}/>}
           {g.my_rating&&<div style={{position:"absolute",top:2,right:2,padding:"1px 4px",borderRadius:3,background:"rgba(0,0,0,.7)",fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
         </div>})}</div>
@@ -407,7 +410,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
     {tab==="reviews"&&<div>
       {revs.length>0?revs.map(r=><div key={r.id} style={{...glass,padding:14,borderRadius:14,marginBottom:8}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-          {r.game_img&&<div onClick={()=>{const found=allGames.find(x=>x.id===r.game_id);if(found)setSel?.(found);else setSel?.({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{width:36,height:48,borderRadius:5,overflow:"hidden",flexShrink:0,cursor:"pointer"}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+          {r.game_img&&<div onClick={()=>{const found=allGames.find(x=>x.id===r.game_id);if(found)setSel?.(found);else setSel?.({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{width:36,height:48,borderRadius:5,overflow:"hidden",flexShrink:0,cursor:"pointer"}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
           <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700}}>{r.game_title}</div>
             <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={11} show/>}<span style={{fontSize:10,color:"rgba(255,255,255,.12)"}}>{tA(r.created_at)}</span></div></div>
           {isSelf&&editRevId!==r.id&&<div style={{display:"flex",gap:4}}>
@@ -440,7 +443,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
           {l.game_ids.map(gid=>{const found=allGames.find(x=>x.id===gid);const gData=gs.find(x=>x.game_id===gid);const img=found?.img||gData?.game_img;
             return<div key={gid} style={{position:"relative"}}>
               <div onClick={()=>{if(found)setSel?.(found)}} style={{borderRadius:3,overflow:"hidden",aspectRatio:"2/3",cursor:found?"pointer":"default"}}>
-                {img?<img src={img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🎮</div>}</div>
+                {img?<img src={img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🎮</div>}</div>
               {isSelf&&<button onClick={()=>doRemoveGameFromList(l.id,gid)} style={{position:"absolute",top:-2,right:-2,width:12,height:12,borderRadius:6,background:"#fda4af",border:"none",color:"#0f0c19",fontSize:7,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
             </div>})}
         </div>}
@@ -456,7 +459,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
     {tab==="activity"&&<div>
       {acts.length>0?acts.map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:12}}>
         <span style={{fontSize:10,color:"rgba(255,255,255,.1)",width:30,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
-        {a.game_img&&<div style={{width:30,height:40,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+        {a.game_img&&<div style={{width:30,height:40,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
         <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600}}>{a.game_title}</div><div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{a.action}</div></div>
         {a.rating?<Stars rating={parseFloat(a.rating)} size={9}/>:null}
       </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet</p>}
@@ -572,7 +575,7 @@ export default function App(){
             <div className="sec-title">📰 GAME NEWS</div>
             {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
               onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
-              {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover"}}/>}
+              {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
               <div style={{padding:"8px 10px"}}>
                 <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
                 <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date} · {n.genre}</div>
@@ -598,7 +601,7 @@ export default function App(){
               <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
                 {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
                   onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
-                  {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover"}}/>}
+                  {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
                   <div style={{padding:"8px 10px"}}><div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
                     <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
           </div>
