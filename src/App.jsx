@@ -107,13 +107,13 @@ const Stars=({rating=0,size=14,interactive,onRate,show})=>{const[h,setH]=useStat
 const Loader=()=><div style={{display:"flex",justifyContent:"center",padding:32}}><div style={{width:24,height:24,border:"2.5px solid rgba(255,255,255,.05)",borderTopColor:"#67e8f9",borderRadius:"50%",animation:"spin .7s linear infinite"}}/></div>;
 const Av=({url,name,size=32,onClick,v})=>{const s=avUrl(url,v);return<div onClick={onClick} style={{width:size,height:size,borderRadius:size*.3,background:s?"rgba(255,255,255,.05)":"linear-gradient(135deg,#67e8f9,#818cf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.38,fontWeight:800,cursor:onClick?"pointer":"default",overflow:"hidden",flexShrink:0,color:"#fff"}}>{s?<img src={s} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(name||"?").charAt(0).toUpperCase()}</div>};
 
-/* Steam Cover Cache — portrait posters from Steam CDN */
+/* IGDB Cover Cache — proper portrait covers for ALL platforms */
 const coverCache={};
-const getSteamCover=async(name)=>{if(!name)return null;const k=name.toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
-  try{const r=await fetch(`/api/steam?action=cover&name=${encodeURIComponent(name)}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
+const getIGDBCover=async(name)=>{if(!name)return null;const k=name.toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
+  try{const r=await fetch(`/api/igdb?action=cover&name=${encodeURIComponent(name)}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
 const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(rawgImg);const[tried,setTried]=useState(false);
   useEffect(()=>{let c=true;setSrc(rawgImg);setTried(false);
-    if(name){const k=name.toLowerCase();if(coverCache[k]){setSrc(coverCache[k])}else if(coverCache[k]===null){/*no steam cover*/}else{getSteamCover(name).then(u=>{if(c&&u)setSrc(u);setTried(true)})}}
+    if(name){const k=name.toLowerCase();if(coverCache[k]){setSrc(coverCache[k])}else if(coverCache[k]===null){/*no cover*/}else{getIGDBCover(name).then(u=>{if(c&&u)setSrc(u);setTried(true)})}}
     return()=>{c=false}},[name,rawgImg]);return[src,(coverCache[name?.toLowerCase()]===null)||tried]};
 
 /* Platform icons */
