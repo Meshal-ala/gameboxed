@@ -341,15 +341,16 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
     {/* ═ TAB: Profile ═ */}
     {tab==="profile"&&<div>
-      {/* Favorites — centered */}
-      {favs.length>0&&<div style={{marginBottom:24,textAlign:"center"}}><div className="sec-title" style={{justifyContent:"center"}}>⭐ FAVORITE GAMES</div>
-        <div style={{display:"flex",gap:m?8:12,justifyContent:"center",flexWrap:"wrap"}}>
-          {favs.map(f=><div key={f.game_id} style={{width:m?70:90,position:"relative"}}>
-            <div style={{borderRadius:8,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 16px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.15)"}}>
-              {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
-            <div style={{fontSize:m?8:9,fontWeight:600,marginTop:3,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"rgba(255,255,255,.5)"}}>{f.game_title}</div>
-            {isSelf&&<button onClick={()=>rmFav(f.game_id)} style={{position:"absolute",top:-4,right:-4,width:16,height:16,borderRadius:8,background:"#fda4af",border:"none",color:"#0f0c19",fontSize:9,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
-          </div>)}</div></div>}
+      {/* Favorites — Letterboxd style: 4 bigger posters, centered, no X, clickable */}
+      {favs.length>0&&<div style={{marginBottom:28,textAlign:"center"}}><div className="sec-title" style={{justifyContent:"center"}}>⭐ FAVORITE GAMES</div>
+        <div style={{display:"flex",gap:m?8:12,justifyContent:"center"}}>
+          {favs.map(f=>{const gObj=allGames.find(x=>x.id===f.game_id)||{id:f.game_id,t:f.game_title,img:f.game_img,y:"",genre:"",r:null,pf:[]};
+            return<div key={f.game_id} onClick={()=>setSel?.(gObj)} style={{width:m?75:130,cursor:"pointer"}}>
+              <div style={{borderRadius:m?8:10,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 20px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.1)",transition:"transform .2s"}}
+                onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="scale(1.03)"}} onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="scale(1)"}}>
+                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
+              <div style={{fontSize:m?9:11,fontWeight:600,marginTop:5,lineHeight:1.3,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.game_title}</div>
+            </div>})}</div></div>}
       {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 20px",...glass,borderRadius:14,marginBottom:20}}>
         <div style={{fontSize:20,marginBottom:4}}>⭐</div><p style={{color:"rgba(255,255,255,.15)",fontSize:11}}>Open a game and click ⭐ to showcase up to 4 favorites</p></div>}
 
