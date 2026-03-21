@@ -107,13 +107,21 @@ const Stars=({rating=0,size=14,interactive,onRate,show})=>{const[h,setH]=useStat
 const Loader=()=><div style={{display:"flex",justifyContent:"center",padding:32}}><div style={{width:24,height:24,border:"2.5px solid rgba(255,255,255,.05)",borderTopColor:"#67e8f9",borderRadius:"50%",animation:"spin .7s linear infinite"}}/></div>;
 const Av=({url,name,size=32,onClick,v})=>{const s=avUrl(url,v);return<div onClick={onClick} style={{width:size,height:size,borderRadius:size*.3,background:s?"rgba(255,255,255,.05)":"linear-gradient(135deg,#67e8f9,#818cf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.38,fontWeight:800,cursor:onClick?"pointer":"default",overflow:"hidden",flexShrink:0,color:"#fff"}}>{s?<img src={s} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(name||"?").charAt(0).toUpperCase()}</div>};
 
+/* Steam Cover Cache — portrait posters from Steam CDN */
+const coverCache={};
+const getSteamCover=async(name)=>{if(!name)return null;const k=name.toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
+  try{const r=await fetch(`/api/steam?action=cover&name=${encodeURIComponent(name)}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
+const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(rawgImg);
+  useEffect(()=>{let c=true;if(name){const k=name.toLowerCase();if(coverCache[k]){setSrc(coverCache[k])}else if(coverCache[k]===null){setSrc(rawgImg)}else{getSteamCover(name).then(u=>{if(c&&u)setSrc(u)})}}return()=>{c=false}},[name]);return src};
+
 const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState(false);const[vis,setVis]=useState(false);const[err,setErr]=useState(false);
+  const cover=useCover(big?null:g.t,g.img);// Only fetch covers for non-big cards (portrait)
   useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);const u=ud?.[g.id];
   return<div onClick={()=>onClick?.(g)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-    style={{borderRadius:big?20:14,overflow:"hidden",cursor:"pointer",position:"relative",aspectRatio:big?"16/9":"3/4",
+    style={{borderRadius:big?20:14,overflow:"hidden",cursor:"pointer",position:"relative",aspectRatio:big?"16/9":"2/3",
       opacity:vis?1:0,transform:vis?(hov&&!m?"translateY(-4px) scale(1.01)":"none"):"translateY(10px)",transition:"all .3s cubic-bezier(.4,0,.2,1)",
       boxShadow:hov?"0 20px 50px rgba(0,0,0,.5)":"0 4px 20px rgba(0,0,0,.2)"}}>
-    {!err&&g.img?<img src={g.img} alt={g.t} onError={()=>setErr(true)} loading="lazy"
+    {!err&&(cover||g.img)?<img src={big?g.img:cover||g.img} alt={g.t} onError={()=>{if(cover&&cover!==g.img){coverCache[g.t?.toLowerCase()]=null;setErr(false)}else setErr(true)}} loading="lazy"
       style={{width:"100%",height:"100%",objectFit:"cover",transition:"transform .5s",transform:hov&&!m?"scale(1.05)":"scale(1)"}}/>
       :<div style={{width:"100%",height:"100%",background:"linear-gradient(145deg,#1e1b2e,#2d2640)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:big?40:24,color:"rgba(255,255,255,.05)"}}>🎮</div>}
     <div style={{position:"absolute",inset:0,background:big?"linear-gradient(to top,rgba(15,12,25,.95) 0%,rgba(15,12,25,.3) 40%,transparent 70%)":"linear-gradient(to top,rgba(15,12,25,.92) 0%,transparent 55%)"}}/>

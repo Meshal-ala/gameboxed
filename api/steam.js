@@ -65,6 +65,43 @@ export default async function handler(req, res) {
       return res.json({ games });
     }
 
+    // Search Steam store for a game and return portrait cover URL
+    if (action === "cover") {
+      const { name } = req.query;
+      if (!name) return res.json({ cover: null });
+      const r = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(name)}&l=en&cc=US`);
+      const d = await r.json();
+      const match = d.items?.[0];
+      if (match) {
+        return res.json({
+          appid: match.id,
+          name: match.name,
+          cover: `https://cdn.akamai.steamstatic.com/steam/apps/${match.id}/library_600x900_2x.jpg`,
+          header: `https://cdn.akamai.steamstatic.com/steam/apps/${match.id}/header.jpg`,
+        });
+      }
+      return res.json({ cover: null });
+    }
+
+    // Batch cover search - multiple games at once
+    if (action === "covers") {
+      const { names } = req.query;
+      if (!names) return res.json({ covers: {} });
+      const gameNames = names.split("|").slice(0, 20);
+      const covers = {};
+      for (const name of gameNames) {
+        try {
+          const r = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(name)}&l=en&cc=US`);
+          const d = await r.json();
+          const match = d.items?.[0];
+          if (match) {
+            covers[name.toLowerCase()] = `https://cdn.akamai.steamstatic.com/steam/apps/${match.id}/library_600x900_2x.jpg`;
+          }
+        } catch {}
+      }
+      return res.json({ covers });
+    }
+
     return res.status(400).json({ error: "Invalid action" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
