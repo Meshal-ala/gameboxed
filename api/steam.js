@@ -1,4 +1,4 @@
-const STEAM_KEY = "EE9CBE23607B9A8E5E708F0649EF53A5";
+const STEAM_KEY = process.env.STEAM_API_KEY;
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
