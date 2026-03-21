@@ -29,7 +29,7 @@ const loadFavs=async uid=>{const{data}=await supabase.from("favorites").select("
 const addFav=async(uid,game)=>{const{data:existing}=await supabase.from("favorites").select("*").eq("user_id",uid);if((existing||[]).length>=4)return false;await supabase.from("favorites").insert({user_id:uid,game_id:game.id,game_title:game.t||game.title,game_img:game.img,position:(existing||[]).length});return true};
 const removeFav=async(uid,gameId)=>{await supabase.from("favorites").delete().eq("user_id",uid).eq("game_id",gameId)};
 const getUserFavs=async uid=>{const{data}=await supabase.from("favorites").select("*").eq("user_id",uid).order("position");return data||[]};
-const postAct=async(uid,act,g)=>{await supabase.from("activities").insert({user_id:uid,action:act,game_id:g?.id,game_title:g?.title||g?.t,game_img:g?.img,rating:g?.rating})};
+const postAct=async(uid,act,g,extra)=>{await supabase.from("activities").insert({user_id:uid,action:act,game_id:g?.id,game_title:g?.title||g?.t,game_img:g?.img,rating:g?.rating,extra_text:extra?.text,target_user_id:extra?.targetUserId,target_user_name:extra?.targetUserName})};
 const loadFeed=async uid=>{const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",uid);const ids=[uid,...(fo||[]).map(f=>f.following_id)];const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").in("user_id",ids).order("created_at",{ascending:false}).limit(40);return data||[]};
 const loadAllFeed=async()=>{const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").order("created_at",{ascending:false}).limit(40);return data||[]};
 const loadGR=async gid=>{const{data}=await supabase.from("reviews").select("*,profiles(display_name,username,avatar_url)").eq("game_id",gid).order("created_at",{ascending:false}).limit(20);return data||[]};
@@ -42,7 +42,7 @@ const getFC=async u=>{const{count:a}=await supabase.from("follows").select("*",{
 const getUG=async u=>{const{data}=await supabase.from("user_games").select("*").eq("user_id",u).order("updated_at",{ascending:false});return data||[]};
 const getFollowersList=async u=>{const{data}=await supabase.from("follows").select("follower_id").eq("following_id",u);if(!data?.length)return[];const{data:p}=await supabase.from("profiles").select("*").in("id",data.map(r=>r.follower_id));return p||[]};
 const getFollowingList=async u=>{const{data}=await supabase.from("follows").select("following_id").eq("follower_id",u);if(!data?.length)return[];const{data:p}=await supabase.from("profiles").select("*").in("id",data.map(r=>r.following_id));return p||[]};
-const getUserActs=async u=>{const{data}=await supabase.from("activities").select("*").eq("user_id",u).order("created_at",{ascending:false}).limit(15);return data||[]};
+const getUserActs=async u=>{const{data}=await supabase.from("activities").select("*").eq("user_id",u).order("created_at",{ascending:false}).limit(50);return data||[]};
 const getUserRevs=async u=>{const{data}=await supabase.from("reviews").select("*").eq("user_id",u).order("created_at",{ascending:false}).limit(20);return data||[]};
 const deleteRev=async id=>{await supabase.from("reviews").delete().eq("id",id)};
 const updateRev=async(id,fields)=>{await supabase.from("reviews").update(fields).eq("id",id)};
@@ -93,6 +93,8 @@ const loadNews=async()=>{
 
 const useM=()=>{const[m,setM]=useState(window.innerWidth<768);useEffect(()=>{const h=()=>setM(window.innerWidth<768);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);return m};
 const tA=d=>{const s=Math.floor((Date.now()-new Date(d))/1000);if(s<60)return"now";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d"};
+const actIcon=a=>{const m={"rated":"⭐","reviewed":"✍️","completed":"🏆","started":"🎮","started playing":"🎮","added to wishlist":"🕐","added to backlog":"📋","added to list":"📝","followed":"👥","favorited":"💛","dropped":"❌"};return m[a]||"📌"};
+const actLabel=a=>{const m={"rated":"rated","reviewed":"reviewed","completed":"completed","started":"started playing","started playing":"started playing","added to wishlist":"wishlisted","added to backlog":"added to backlog","added to list":"added to list","followed":"followed","favorited":"added to favorites","dropped":"dropped"};return m[a]||a};
 
 const Stars=({rating=0,size=14,interactive,onRate,show})=>{const[h,setH]=useState(0);const a=h||rating;
   const c=(s,e)=>{if(!interactive||!onRate)return;const r=e.currentTarget.getBoundingClientRect();onRate(e.clientX-r.left<r.width/2?s-.5:s)};
@@ -258,11 +260,11 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
         const match=(d.games||[]).find(sg=>sg.name?.toLowerCase()===g.t?.toLowerCase());
         if(match){const ar=await fetch(`/api/steam?action=achievements&steamid=${userProf.steam_id}&appid=${match.appid}`);const ad=await ar.json();if(ad.total>0)setAch(ad)}
       }catch{}})()}}},[g.id]);
-  const toggleFav=async()=>{if(!me){setSa(true);return}setFavLd(true);if(isFav){await removeFav(me.id,g.id);setIsFav(false)}else{const ok=await addFav(me.id,g);if(!ok)alert("Max 4 favorites!");else setIsFav(true)}setFavLd(false)};
-  const sv=async(f,v)=>{if(!me){setSa(true);return}const nd={...d,[f]:v,title:g.t,img:g.img};if(f==="myRating"){setMr(v);await postAct(me.id,"rated",{id:g.id,title:g.t,img:g.img,rating:v})}if(f==="status"){setSt(v);await postAct(me.id,v==="completed"?"completed":v==="playing"?"started":"added to "+v,{id:g.id,title:g.t,img:g.img})}
+  const toggleFav=async()=>{if(!me){setSa(true);return}setFavLd(true);if(isFav){await removeFav(me.id,g.id);setIsFav(false)}else{const ok=await addFav(me.id,g);if(!ok)alert("Max 4 favorites!");else{setIsFav(true);await postAct(me.id,"favorited",{id:g.id,title:g.t,img:g.img})}}setFavLd(false)};
+  const sv=async(f,v)=>{if(!me){setSa(true);return}const nd={...d,[f]:v,title:g.t,img:g.img};if(f==="myRating"){setMr(v);await postAct(me.id,"rated",{id:g.id,title:g.t,img:g.img,rating:v})}if(f==="status"){setSt(v);const actMap={completed:"completed",playing:"started playing",wishlist:"added to wishlist",backlog:"added to backlog",dropped:"dropped"};await postAct(me.id,actMap[v]||v,{id:g.id,title:g.t,img:g.img})}
     setUd({...ud,[g.id]:nd});await stc(me.id,g.id,nd);refresh?.()};
   const removeGame=async()=>{if(!me)return;await removeFromLib(me.id,g.id);const n={...ud};delete n[g.id];setUd(n);setSt("");setMr(0);refresh?.()};
-  const handleAddToList=async(listId)=>{await addGameToList(listId,g.id);setAddedList(listId);reloadLists?.();setTimeout(()=>setAddedList(""),2000)};
+  const handleAddToList=async(listId)=>{const list=myLists?.find(l=>l.id===listId);await addGameToList(listId,g.id);setAddedList(listId);reloadLists?.();await postAct(me.id,"added to list",{id:g.id,title:g.t,img:g.img},{text:list?.title||"list"});setTimeout(()=>setAddedList(""),2000)};
   const subRev=async()=>{if(!me||!rt.trim())return;setPosting(true);await postRev(me.id,g,rr,rt);setRt("");setRr(0);setRvs(await loadGR(g.id));setPosting(false);refresh?.()};
 
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:m?"flex-end":"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?0:16}}>
@@ -325,7 +327,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const[tab,setTab]=useState("profile");const[editRevId,setEditRevId]=useState(null);const[editRevText,setEditRevText]=useState("");const[editRevRating,setEditRevRating]=useState(0);
   const isSelf=me?.id===viewId;
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
-  const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}))}};
+  const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name})}};
   const rmFav=async gid=>{await removeFav(viewId,gid);setFavs(favs.filter(f=>f.game_id!==gid))};
   const hcl=async()=>{if(!nLN.trim()||!me)return;await createList(me.id,nLN);setNLN("");reloadLists?.()};
   const doRenameList=async id=>{if(!editListName.trim())return;await renameList(id,editListName);setEditListId(null);reloadLists?.()};
@@ -377,10 +379,11 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
       {/* Recent activity preview */}
       {acts.length>0&&<div style={{marginBottom:20}}><div className="sec-title">RECENT ACTIVITY</div>
-        {acts.slice(0,5).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
-          <span style={{fontSize:9,color:"rgba(255,255,255,.1)",width:24,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
-          {a.game_img&&<div style={{width:24,height:32,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
-          <div style={{flex:1,minWidth:0}}><span style={{fontWeight:600}}>{a.game_title}</span> <span style={{color:"rgba(255,255,255,.15)"}}>{a.action}</span></div>
+        {acts.slice(0,5).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
+          <span style={{fontSize:9,color:"rgba(255,255,255,.1)",width:22,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
+          <span style={{fontSize:12,flexShrink:0}}>{actIcon(a.action)}</span>
+          {a.game_img&&<div style={{width:22,height:30,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
+          <div style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{a.game_title||a.target_user_name||""}</span> <span style={{color:"rgba(255,255,255,.12)"}}>{actLabel(a.action)}</span></div>
           {a.rating?<Stars rating={parseFloat(a.rating)} size={7}/>:null}
         </div>)}</div>}
 
@@ -457,10 +460,14 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
     {/* ═ TAB: Activity ═ */}
     {tab==="activity"&&<div>
-      {acts.length>0?acts.map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:12}}>
-        <span style={{fontSize:10,color:"rgba(255,255,255,.1)",width:30,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
+      {acts.length>0?acts.map(a=><div key={a.id} style={{...glass,borderRadius:12,padding:"10px 14px",marginBottom:5,display:"flex",gap:10,alignItems:"center"}}>
+        <span style={{fontSize:10,color:"rgba(255,255,255,.1)",width:28,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
+        <span style={{fontSize:14,flexShrink:0}}>{actIcon(a.action)}</span>
         {a.game_img&&<div style={{width:30,height:40,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
-        <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600}}>{a.game_title}</div><div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{a.action}</div></div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.game_title||a.target_user_name||""}</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{actLabel(a.action)}{a.extra_text?" · "+a.extra_text:""}</div>
+        </div>
         {a.rating?<Stars rating={parseFloat(a.rating)} size={9}/>:null}
       </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet</p>}
     </div>}
@@ -617,10 +624,16 @@ export default function App(){
                 <div style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3}}>{r.game_title}</div>
                 <p style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
             <div className="sec-title">⚡ ACTIVITY</div>
-            {feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
-              <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={20} onClick={()=>goUser(a.user_id)} v={avV}/>
-              <div style={{flex:1,minWidth:0}}><span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
-                <span style={{color:"rgba(255,255,255,.15)"}}> {a.action} </span>{a.game_title&&<span style={{color:"#67e8f9"}}>{a.game_title}</span>}</div>
+            {feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
+              <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={18} onClick={()=>goUser(a.user_id)} v={avV}/>
+              <div style={{flex:1,minWidth:0}}>
+                <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
+                <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
+                <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
+                {a.game_title&&<span style={{color:"#67e8f9"}}>{a.game_title}</span>}
+                {a.action==="followed"&&a.target_user_name&&<span style={{color:"#67e8f9"}}>{a.target_user_name}</span>}
+                {a.extra_text&&<span style={{color:"rgba(255,255,255,.12)"}}> "{a.extra_text}"</span>}
+              </div>
               <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)}
           </aside>}
         </div>}</div>}
@@ -628,13 +641,35 @@ export default function App(){
       {/* FEED */}
       {pg==="feed"&&user&&<div style={{animation:"fadeIn .15s"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Activity</h2>
-        {feed.length?feed.map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:14,...glass,marginBottom:5}}>
-          <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={28} onClick={()=>goUser(a.user_id)} v={avV}/>
-          {a.game_img&&<img src={a.game_img} style={{width:32,height:18,borderRadius:4,objectFit:"cover"}}/>}
-          <div style={{flex:1,fontSize:12}}><span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
-            <span style={{color:"rgba(255,255,255,.2)"}}> {a.action} </span>{a.game_title&&<span style={{color:"#67e8f9",fontWeight:700}}>{a.game_title}</span>}</div>
-          <span style={{fontSize:10,color:"rgba(255,255,255,.1)"}}>{tA(a.created_at)}</span></div>)
-        :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet</p>}</div>}
+        {feed.length?feed.map(a=><div key={a.id} style={{...glass,borderRadius:14,padding:m?"12px":"14px 16px",marginBottom:6,display:"flex",gap:m?10:14,alignItems:"flex-start"}}>
+          <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={m?32:36} onClick={()=>goUser(a.user_id)} v={avV}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
+              <span style={{fontWeight:800,fontSize:13,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
+              <span style={{fontSize:14}}>{actIcon(a.action)}</span>
+              <span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>{actLabel(a.action)}</span>
+              <span style={{fontSize:10,color:"rgba(255,255,255,.1)",marginLeft:"auto",flexShrink:0}}>{tA(a.created_at)}</span>
+            </div>
+            {/* Game card for game-related actions */}
+            {a.game_title&&<div style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}
+              onClick={()=>{const found=all.find(x=>x.id===a.game_id);if(found)setSel(found);else if(a.game_id)setSel({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}}>
+              {a.game_img&&<div style={{width:36,height:48,borderRadius:6,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.game_title}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
+                  {a.action==="rated"&&a.rating&&<Stars rating={parseFloat(a.rating)} size={10} show/>}
+                  {a.extra_text&&<span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>in "{a.extra_text}"</span>}
+                </div>
+              </div>
+            </div>}
+            {/* Follow action */}
+            {a.action==="followed"&&a.target_user_name&&<div onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}>
+              <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#67e8f9,#818cf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#0f0c19"}}>{(a.target_user_name||"?").charAt(0)}</div>
+              <span style={{fontSize:13,fontWeight:600}}>{a.target_user_name}</span>
+            </div>}
+          </div>
+        </div>)
+        :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
 
       {/* EXPLORE */}
       {pg==="explore"&&<div style={{animation:"fadeIn .15s"}}>
