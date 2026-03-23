@@ -47,6 +47,32 @@ const getUserRevs=async u=>{const{data}=await supabase.from("reviews").select("*
 const deleteRev=async id=>{await supabase.from("reviews").delete().eq("id",id)};
 const updateRev=async(id,fields)=>{await supabase.from("reviews").update(fields).eq("id",id)};
 
+/* Diary */
+const loadDiary=async uid=>{const{data}=await supabase.from("diary").select("*").eq("user_id",uid).order("played_on",{ascending:false}).limit(50);return data||[]};
+const addDiary=async(uid,entry)=>supabase.from("diary").insert({user_id:uid,...entry});
+const deleteDiary=async id=>supabase.from("diary").delete().eq("id",id);
+
+/* Review Likes */
+const likeRev=async(uid,revId)=>{await supabase.from("review_likes").insert({user_id:uid,review_id:revId});await supabase.rpc("increment_likes",{rev_id:revId}).catch(()=>{})};
+const unlikeRev=async(uid,revId)=>{await supabase.from("review_likes").delete().eq("user_id",uid).eq("review_id",revId)};
+const getRevLikes=async revId=>{const{count}=await supabase.from("review_likes").select("*",{count:"exact",head:true}).eq("review_id",revId);return count||0};
+const didLike=async(uid,revId)=>{const{data}=await supabase.from("review_likes").select("id").eq("user_id",uid).eq("review_id",revId).single();return!!data};
+
+/* Review Comments */
+const loadComments=async revId=>{const{data}=await supabase.from("review_comments").select("*,profiles(display_name,username,avatar_url)").eq("review_id",revId).order("created_at",{ascending:true}).limit(30);return data||[]};
+const postComment=async(uid,revId,text)=>supabase.from("review_comments").insert({user_id:uid,review_id:revId,text});
+const deleteComment=async id=>supabase.from("review_comments").delete().eq("id",id);
+
+/* Notifications */
+const loadNotifs=async uid=>{const{data}=await supabase.from("notifications").select("*,from:profiles!notifications_from_user_id_fkey(display_name,avatar_url)").eq("user_id",uid).order("created_at",{ascending:false}).limit(30);return data||[]};
+const unreadCount=async uid=>{const{count}=await supabase.from("notifications").select("*",{count:"exact",head:true}).eq("user_id",uid).eq("read",false);return count||0};
+const markRead=async uid=>supabase.from("notifications").update({read:true}).eq("user_id",uid).eq("read",false);
+const sendNotif=async(toUid,fromUid,type,msg,extra)=>supabase.from("notifications").insert({user_id:toUid,from_user_id:fromUid,type,message:msg,game_title:extra?.game,review_id:extra?.revId});
+
+/* Banner */
+const upBanner=async(uid,file)=>{const p=`${uid}/banner.${file.name.split(".").pop()}`;try{await supabase.storage.from("avatars").remove([p])}catch{};const{error}=await supabase.storage.from("avatars").upload(p,file,{cacheControl:"no-cache",upsert:true});if(error)throw error;await supabase.from("profiles").update({banner_url:p}).eq("id",uid);return p};
+const bannerUrl=(url,v)=>url?`${SU}/storage/v1/object/public/avatars/${url}?v=${v||1}`:null;
+
 /* FIXED Avatar — single path, always overwrite */
 const avUrl=(url,v)=>url?`${SU}/storage/v1/object/public/avatars/${url}?v=${v||1}`:null;
 const upAv=async(uid,file)=>{
@@ -93,8 +119,8 @@ const loadNews=async()=>{
 
 const useM=()=>{const[m,setM]=useState(window.innerWidth<768);useEffect(()=>{const h=()=>setM(window.innerWidth<768);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);return m};
 const tA=d=>{const s=Math.floor((Date.now()-new Date(d))/1000);if(s<60)return"now";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d"};
-const actIcon=a=>{const m={"rated":"⭐","reviewed":"✍️","completed":"🏆","started":"🎮","started playing":"🎮","added to wishlist":"🕐","added to backlog":"📋","added to list":"📝","followed":"👥","favorited":"💛","dropped":"❌"};return m[a]||"📌"};
-const actLabel=a=>{const m={"rated":"rated","reviewed":"reviewed","completed":"completed","started":"started playing","started playing":"started playing","added to wishlist":"wishlisted","added to backlog":"added to backlog","added to list":"added to list","followed":"followed","favorited":"added to favorites","dropped":"dropped"};return m[a]||a};
+const actIcon=a=>{const m={"rated":"⭐","reviewed":"✍️","completed":"🏆","started":"🎮","started playing":"🎮","added to wishlist":"🕐","added to backlog":"📋","added to list":"📝","followed":"👥","favorited":"💛","dropped":"❌","logged":"📖"};return m[a]||"📌"};
+const actLabel=a=>{const m={"rated":"rated","reviewed":"reviewed","completed":"completed","started":"started playing","started playing":"started playing","added to wishlist":"wishlisted","added to backlog":"added to backlog","added to list":"added to list","followed":"followed","favorited":"added to favorites","dropped":"dropped","logged":"logged"};return m[a]||a};
 
 const Stars=({rating=0,size=14,interactive,onRate,show})=>{const[h,setH]=useState(0);const a=h||rating;
   const c=(s,e)=>{if(!interactive||!onRate)return;const r=e.currentTarget.getBoundingClientRect();onRate(e.clientX-r.left<r.width/2?s-.5:s)};
@@ -276,6 +302,40 @@ const FLM=({userId,type,onClose,m,goUser})=>{const[list,setList]=useState([]);co
           <Av url={p.avatar_url} name={p.display_name} size={38} v={Date.now()}/><div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>{p.display_name}</div>{p.username&&<div style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>@{p.username}</div>}</div></div>)
         :<p style={{textAlign:"center",padding:24,color:"rgba(255,255,255,.2)"}}>No {type} yet</p>}</div></div></div>};
 
+/* Review Card with Likes + Comments */
+const RevCard=({r,me,onClose,goUser,avV})=>{
+  const[liked,setLiked]=useState(false);const[lc,setLc]=useState(0);const[cmts,setCmts]=useState([]);const[showCmts,setShowCmts]=useState(false);const[cText,setCText]=useState("");
+  useEffect(()=>{getRevLikes(r.id).then(setLc);if(me)didLike(me.id,r.id).then(setLiked)},[r.id]);
+  const togLike=async()=>{if(!me)return;if(liked){await unlikeRev(me.id,r.id);setLiked(false);setLc(c=>c-1)}else{await likeRev(me.id,r.id);setLiked(true);setLc(c=>c+1);if(me.id!==r.user_id)sendNotif(r.user_id,me.id,"like",`liked your review of ${r.game_title}`,{revId:r.id})}};
+  const openCmts=async()=>{if(!showCmts)setCmts(await loadComments(r.id));setShowCmts(!showCmts)};
+  const submitCmt=async()=>{if(!me||!cText.trim())return;await postComment(me.id,r.id,cText);setCText("");setCmts(await loadComments(r.id));if(me.id!==r.user_id)sendNotif(r.user_id,me.id,"comment",`commented on your review of ${r.game_title}`,{revId:r.id})};
+  return<div style={{...glass,padding:14,borderRadius:14,marginBottom:8}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+      <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={28} onClick={()=>{onClose?.();goUser?.(r.user_id)}} v={avV}/>
+      <span style={{fontSize:13,fontWeight:700,cursor:"pointer",flex:1}} onClick={()=>{onClose?.();goUser?.(r.user_id)}}>{r.profiles?.display_name}</span>
+      {r.rating>0&&<Stars rating={parseFloat(r.rating)} size={10} show/>}<span style={{fontSize:10,color:"rgba(255,255,255,.15)"}}>{tA(r.created_at)}</span></div>
+    <p style={{color:"rgba(255,255,255,.6)",fontSize:13,lineHeight:1.7,margin:"0 0 8px"}}>{r.text}</p>
+    {/* Like + Comment bar */}
+    <div style={{display:"flex",alignItems:"center",gap:12,paddingTop:6,borderTop:"1px solid rgba(255,255,255,.04)"}}>
+      <button onClick={togLike} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:"none",cursor:"pointer",fontSize:12,color:liked?"#fda4af":"rgba(255,255,255,.2)",transition:"all .15s"}}>
+        <span style={{fontSize:14}}>{liked?"❤️":"🤍"}</span>{lc>0&&<span style={{fontWeight:700}}>{lc}</span>}</button>
+      <button onClick={openCmts} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:"none",cursor:"pointer",fontSize:12,color:"rgba(255,255,255,.2)"}}>
+        <span style={{fontSize:14}}>💬</span>{cmts.length>0&&<span style={{fontWeight:700}}>{cmts.length}</span>}</button>
+    </div>
+    {/* Comments */}
+    {showCmts&&<div style={{marginTop:8}}>
+      {cmts.map(c=><div key={c.id} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.02)",fontSize:12}}>
+        <Av url={c.profiles?.avatar_url} name={c.profiles?.display_name} size={20} v={avV}/>
+        <div style={{flex:1}}><span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>{onClose?.();goUser?.(c.user_id)}}>{c.profiles?.display_name}</span>
+          <span style={{color:"rgba(255,255,255,.4)",marginLeft:4}}>{c.text}</span>
+          <span style={{color:"rgba(255,255,255,.1)",marginLeft:6,fontSize:9}}>{tA(c.created_at)}</span>
+          {me?.id===c.user_id&&<button onClick={async()=>{await deleteComment(c.id);setCmts(cmts.filter(x=>x.id!==c.id))}} style={{background:"none",border:"none",color:"#fda4af",fontSize:9,cursor:"pointer",marginLeft:4}}>delete</button>}</div></div>)}
+      {me&&<div style={{display:"flex",gap:6,marginTop:6}}>
+        <input value={cText} onChange={e=>setCText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submitCmt()} placeholder="Add a comment..." style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,.06)",background:"rgba(255,255,255,.03)",color:"#fff",fontSize:12,outline:"none"}}/>
+        <button onClick={submitCmt} style={{padding:"8px 12px",borderRadius:8,border:"none",background:cText.trim()?"#67e8f9":"rgba(255,255,255,.04)",color:cText.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:11,fontWeight:800,cursor:cText.trim()?"pointer":"default"}}>Send</button></div>}
+    </div>}
+  </div>};
+
 /* Game Detail */
 const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,reloadLists,userProf})=>{
   const[det,setDet]=useState(null);const[ldg,setLdg]=useState(true);const d=ud[g.id]||{};
@@ -355,24 +415,21 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
             <Stars rating={rr} size={20} interactive onRate={setRr}/>
             <textarea value={rt} onChange={e=>setRt(e.target.value)} rows={3} placeholder="Share your thoughts..." style={{width:"100%",marginTop:10,padding:"12px",borderRadius:10,border:"1px solid rgba(255,255,255,.06)",background:"rgba(255,255,255,.03)",color:"#fff",fontSize:14,outline:"none",resize:"none",fontFamily:"inherit"}}/>
             <button onClick={subRev} disabled={posting||!rt.trim()} style={{marginTop:8,padding:"10px 20px",borderRadius:10,border:"none",background:rt.trim()?"linear-gradient(135deg,#67e8f9,#818cf8)":"rgba(255,255,255,.04)",color:rt.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:13,fontWeight:800,cursor:rt.trim()?"pointer":"default"}}>{posting?"...":"Post Review"}</button></div>}
-          {rvs.map(r=><div key={r.id} style={{...glass,padding:14,borderRadius:14,marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={28} onClick={()=>{onClose();goUser(r.user_id)}} v={avV}/>
-              <span style={{fontSize:13,fontWeight:700,cursor:"pointer",flex:1}} onClick={()=>{onClose();goUser(r.user_id)}}>{r.profiles?.display_name}</span>
-              {r.rating>0&&<Stars rating={r.rating} size={10} show/>}<span style={{fontSize:10,color:"rgba(255,255,255,.15)"}}>{tA(r.created_at)}</span></div>
-            <p style={{color:"rgba(255,255,255,.6)",fontSize:13,lineHeight:1.7,margin:0}}>{r.text}</p></div>)}
+          {rvs.map(r=><RevCard key={r.id} r={r} me={me} onClose={onClose} goUser={goUser} avV={avV}/>)}
           {!rvs.length&&<p style={{textAlign:"center",padding:28,color:"rgba(255,255,255,.15)"}}>No reviews yet</p>}</div>}
         {tab==="media"&&g.ss?.length>1&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{g.ss.slice(1,7).map((s,i)=><img key={i} src={s} alt="" loading="lazy" style={{width:"100%",borderRadius:12,aspectRatio:"16/9",objectFit:"cover"}}/>)}</div>}
       </div></div></div>};
 
 /* ═══ PROFILE PAGE — Letterboxd style with tabs ═══ */
-const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,myLists,reloadLists,setSel})=>{
+const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,myLists,reloadLists,setSel,onBanner})=>{
   const[p,setP]=useState(null);const[fc,setFc]=useState({followers:0,following:0});const[gs,setGs]=useState([]);const[acts,setActs]=useState([]);const[revs,setRevs]=useState([]);const[isF,setIsF]=useState(false);const[ld,setLd]=useState(true);const[flM,setFlM]=useState(null);
   const[favs,setFavs]=useState([]);const[editListId,setEditListId]=useState(null);const[editListName,setEditListName]=useState("");const[nLN,setNLN]=useState("");
   const[tab,setTab]=useState("profile");const[editRevId,setEditRevId]=useState(null);const[editRevText,setEditRevText]=useState("");const[editRevRating,setEditRevRating]=useState(0);
-  const isSelf=me?.id===viewId;
-  useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
-  const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name})}};
+  const[diary,setDiary]=useState([]);const[showDiaryForm,setShowDiaryForm]=useState(false);const[dGame,setDGame]=useState("");const[dNote,setDNote]=useState("");const[dDate,setDDate]=useState(new Date().toISOString().slice(0,10));const[dRating,setDRating]=useState(0);const[dHours,setDHours]=useState("");
+  const[dResults,setDResults]=useState([]);const[dSelGame,setDSelGame]=useState(null);
+  const isSelf=me?.id===viewId;const bannerRef=useRef();
+  useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
+  const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name});await sendNotif(viewId,me.id,"follow",`${me.user_metadata?.display_name||"Someone"} followed you`)}};
   const rmFav=async gid=>{await removeFav(viewId,gid);setFavs(favs.filter(f=>f.game_id!==gid))};
   const hcl=async()=>{if(!nLN.trim()||!me)return;await createList(me.id,nLN);setNLN("");reloadLists?.()};
   const doRenameList=async id=>{if(!editListName.trim())return;await renameList(id,editListName);setEditListId(null);reloadLists?.()};
@@ -380,12 +437,22 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const doRemoveGameFromList=async(lid,gid)=>{await removeGameFromList(lid,gid);reloadLists?.()};
   const doDeleteRev=async id=>{await deleteRev(id);setRevs(revs.filter(r=>r.id!==id))};
   const doSaveRev=async id=>{await updateRev(id,{text:editRevText,rating:editRevRating});setRevs(revs.map(r=>r.id===id?{...r,text:editRevText,rating:editRevRating}:r));setEditRevId(null)};
+  /* Diary helpers */
+  const searchDiaryGame=async q=>{if(!q.trim())return setDResults([]);const g=await sga(q);setDResults(g.map(nm).slice(0,5))};
+  const submitDiary=async()=>{if(!dSelGame||!me)return;await addDiary(me.id,{game_id:dSelGame.id,game_title:dSelGame.t,game_img:dSelGame.img,played_on:dDate,note:dNote,rating:dRating||null,hours_played:parseFloat(dHours)||0});
+    await postAct(me.id,"logged",{id:dSelGame.id,title:dSelGame.t,img:dSelGame.img,rating:dRating||null});setDiary(await loadDiary(viewId));setShowDiaryForm(false);setDGame("");setDNote("");setDRating(0);setDHours("");setDSelGame(null)};
+  const rmDiary=async id=>{await deleteDiary(id);setDiary(diary.filter(d=>d.id!==id))};
+  const handleBanner=async e=>{const f=e.target.files[0];if(!f)return;try{await upBanner(me.id,f);onBanner?.()}catch(er){alert("Banner upload failed")}};
+  const shareUrl=`https://gameboxed.vercel.app/?user=${viewId}`;
   if(ld)return<Loader/>;
-  const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
+  const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
 
   return<div style={{animation:"fadeIn .15s"}}>
-    {/* Header */}
-    <div style={{height:m?90:130,borderRadius:20,background:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",marginBottom:m?-30:-40,position:"relative"}}/>
+    {/* Header — custom banner */}
+    <div style={{height:m?100:150,borderRadius:20,background:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",marginBottom:m?-30:-40,position:"relative",overflow:"hidden"}}>
+      {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBanner} style={{display:"none"}}/>
+        <button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",bottom:8,right:8,padding:"4px 10px",borderRadius:8,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)"}}>📷 Banner</button></>}
+    </div>
     <div style={{display:"flex",alignItems:m?"center":"flex-start",gap:m?14:20,marginBottom:16,flexDirection:m?"column":"row",position:"relative",padding:m?"0 12px":"0 20px"}}>
       <Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/>
       <div style={{textAlign:m?"center":"left",flex:1}}>
@@ -399,8 +466,10 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
         <div style={{display:"flex",gap:5,marginTop:8,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
           {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
             <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
+            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button>
             <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
-          :me&&<button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>}
+          :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
+            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button></>}
         </div></div></div>
 
     {/* Tabs — Letterboxd style */}
@@ -449,25 +518,63 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games yet</p>}
     </div>}
 
+    {/* ═ TAB: Diary ═ */}
+    {tab==="diary"&&<div>
+      {isSelf&&<button onClick={()=>setShowDiaryForm(!showDiaryForm)} style={{padding:"10px 18px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer",marginBottom:14,width:"100%"}}>+ Log a game</button>}
+      {showDiaryForm&&<div style={{...glass,padding:16,borderRadius:16,marginBottom:16}}>
+        <div style={{position:"relative",marginBottom:10}}>
+          <input value={dGame} onChange={e=>{setDGame(e.target.value);searchDiaryGame(e.target.value)}} placeholder="Search for a game..." style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none"}}/>
+          {dResults.length>0&&!dSelGame&&<div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:10,...glass,borderRadius:10,background:"rgba(30,27,46,.95)",maxHeight:180,overflow:"auto",marginTop:4}}>
+            {dResults.map(g=><div key={g.id} onClick={()=>{setDSelGame(g);setDGame(g.t);setDResults([])}} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.03)"}}
+              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.04)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              {g.img&&<img src={g.img} style={{width:24,height:32,borderRadius:3,objectFit:"cover"}}/>}<span style={{fontSize:12,fontWeight:600}}>{g.t}</span><span style={{fontSize:10,color:"rgba(255,255,255,.2)",marginLeft:"auto"}}>{g.y}</span></div>)}</div>}
+        </div>
+        {dSelGame&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,background:"rgba(103,232,249,.06)",marginBottom:10}}>
+          {dSelGame.img&&<img src={dSelGame.img} style={{width:24,height:32,borderRadius:3,objectFit:"cover"}}/>}<span style={{fontSize:12,fontWeight:700,flex:1}}>{dSelGame.t}</span>
+          <button onClick={()=>{setDSelGame(null);setDGame("")}} style={{background:"none",border:"none",color:"#fda4af",fontSize:12,cursor:"pointer"}}>✕</button></div>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+          <div><label style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>DATE</label><input type="date" value={dDate} onChange={e=>setDDate(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:12,outline:"none",colorScheme:"dark"}}/></div>
+          <div><label style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>HOURS</label><input type="number" value={dHours} onChange={e=>setDHours(e.target.value)} placeholder="0" style={{width:"100%",padding:"8px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:12,outline:"none"}}/></div></div>
+        <div style={{marginBottom:10}}><label style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>RATING</label><div style={{marginTop:4}}><Stars rating={dRating} size={20} interactive onRate={setDRating}/></div></div>
+        <textarea value={dNote} onChange={e=>setDNote(e.target.value)} rows={2} placeholder="How was your session?" style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid rgba(255,255,255,.06)",background:"rgba(255,255,255,.03)",color:"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit",marginBottom:8}}/>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>setShowDiaryForm(false)} style={{flex:1,padding:"10px",borderRadius:10,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+          <button onClick={submitDiary} disabled={!dSelGame} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:dSelGame?"linear-gradient(135deg,#67e8f9,#818cf8)":"rgba(255,255,255,.04)",color:dSelGame?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:dSelGame?"pointer":"default"}}>Log Game</button></div>
+      </div>}
+      {diary.length>0?diary.map(d=><div key={d.id} style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:6,display:"flex",gap:12,alignItems:"center"}}>
+        <div style={{textAlign:"center",flexShrink:0,width:44}}>
+          <div style={{fontSize:18,fontWeight:900,color:"#67e8f9"}}>{new Date(d.played_on).getDate()}</div>
+          <div style={{fontSize:9,color:"rgba(255,255,255,.2)",fontWeight:700}}>{new Date(d.played_on).toLocaleString("en",{month:"short"}).toUpperCase()}</div></div>
+        {d.game_img&&<div style={{width:32,height:44,borderRadius:5,overflow:"hidden",flexShrink:0}}><img src={d.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:700}}>{d.game_title}</div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
+            {d.rating&&<Stars rating={parseFloat(d.rating)} size={9}/>}
+            {d.hours_played>0&&<span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{d.hours_played}h</span>}</div>
+          {d.note&&<p style={{fontSize:11,color:"rgba(255,255,255,.3)",margin:"3px 0 0",lineHeight:1.4}}>{d.note}</p>}</div>
+        {isSelf&&<button onClick={()=>rmDiary(d.id)} style={{background:"none",border:"none",color:"rgba(255,255,255,.1)",fontSize:12,cursor:"pointer",flexShrink:0}}>🗑️</button>}
+      </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>{isSelf?"Log your first play session!":"No diary entries yet"}</p>}
+    </div>}
+
     {/* ═ TAB: Reviews ═ */}
     {tab==="reviews"&&<div>
-      {revs.length>0?revs.map(r=><div key={r.id} style={{...glass,padding:14,borderRadius:14,marginBottom:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-          {r.game_img&&<div onClick={()=>{const found=allGames.find(x=>x.id===r.game_id);if(found)setSel?.(found);else setSel?.({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{width:36,height:48,borderRadius:5,overflow:"hidden",flexShrink:0,cursor:"pointer"}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
-          <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700}}>{r.game_title}</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={11} show/>}<span style={{fontSize:10,color:"rgba(255,255,255,.12)"}}>{tA(r.created_at)}</span></div></div>
+      {revs.length>0?revs.map(r=><div key={r.id}>
+        {/* Game header for profile reviews */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,marginTop:r===revs[0]?0:8}}>
+          {r.game_img&&<div onClick={()=>{const found=allGames.find(x=>x.id===r.game_id);if(found)setSel?.(found);else setSel?.({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{width:32,height:42,borderRadius:5,overflow:"hidden",flexShrink:0,cursor:"pointer"}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
+          <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>{r.game_title}</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={10} show/>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div></div>
           {isSelf&&editRevId!==r.id&&<div style={{display:"flex",gap:4}}>
             <button onClick={()=>{setEditRevId(r.id);setEditRevText(r.text);setEditRevRating(parseFloat(r.rating)||0)}} style={{padding:"4px 8px",borderRadius:6,...glass,border:"none",color:"rgba(255,255,255,.3)",fontSize:9,cursor:"pointer"}}>✏️</button>
             <button onClick={()=>doDeleteRev(r.id)} style={{padding:"4px 8px",borderRadius:6,...glass,border:"none",color:"#fda4af",fontSize:9,cursor:"pointer"}}>🗑️</button></div>}
         </div>
-        {editRevId===r.id?<div>
+        {editRevId===r.id?<div style={{marginBottom:8}}>
           <Stars rating={editRevRating} size={18} interactive onRate={setEditRevRating}/>
           <textarea value={editRevText} onChange={e=>setEditRevText(e.target.value)} rows={3} style={{width:"100%",marginTop:8,padding:"10px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
           <div style={{display:"flex",gap:6,marginTop:6}}>
             <button onClick={()=>doSaveRev(r.id)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Save</button>
-            <button onClick={()=>setEditRevId(null)} style={{padding:"8px 16px",borderRadius:8,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button></div>
-        </div>
-        :<p style={{color:"rgba(255,255,255,.55)",fontSize:13,lineHeight:1.7,margin:0}}>{r.text}</p>}
+            <button onClick={()=>setEditRevId(null)} style={{padding:"8px 16px",borderRadius:8,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button></div></div>
+        :<RevCard r={{...r,profiles:{display_name:p?.display_name,username:p?.username,avatar_url:p?.avatar_url}}} me={me} goUser={goUser} avV={avV}/>}
       </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No reviews yet</p>}
     </div>}
 
@@ -520,6 +627,7 @@ export default function App(){
   const m=useM();const[pg,setPg]=useState("home");const[sel,setSel]=useState(null);const[q,setQ]=useState("");const[qO,setQO]=useState(false);
   const[ud,setUd]=useState({});const[user,setUser]=useState(null);const[prof,setProf]=useState(null);const[avV,setAvV]=useState(Date.now());const[fc,setFc]=useState({followers:0,following:0});
   const[sa,setSa]=useState(false);const[ep,setEp]=useState(false);const[viewUID,setViewUID]=useState(null);const[flM,setFlM]=useState(null);const[steamModal,setSteamModal]=useState(false);
+  const[notifs,setNotifs]=useState([]);const[nCount,setNCount]=useState(0);const[showNotifs,setShowNotifs]=useState(false);
   const[pop,setPop]=useState([]);const[best,setBest]=useState([]);const[fresh,setFresh]=useState([]);const[soon,setSoon]=useState([]);const[actG,setActG]=useState([]);const[rpg,setRpg]=useState([]);const[indie,setIndie]=useState([]);
   const[sr,setSr]=useState([]);const[pSr,setPSr]=useState([]);const[lSr,setLSr]=useState([]);
   const[ld,setLd]=useState(true);const[sng,setSng]=useState(false);const[lf,setLf]=useState("all");const[sT,setST]=useState("games");
@@ -529,7 +637,7 @@ export default function App(){
   const reloadProf=useCallback(async()=>{if(!user)return;const p=await lp(user.id);setProf(p);setAvV(Date.now());getFC(user.id).then(setFc)},[user]);
   const goUser=(id)=>{setViewUID(id);setPg("viewuser")};
 
-  useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc)}else loadAllFeed().then(setFeed)});loadRR().then(setRRev);loadNews().then(setNews);
+  useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc);loadNotifs(u.id).then(setNotifs);unreadCount(u.id).then(setNCount)}else loadAllFeed().then(setFeed)});loadRR().then(setRRev);loadNews().then(setNews);
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc)}else{setUd({});setProf(null)}});return()=>subscription.unsubscribe()},[]);
 
   useEffect(()=>{setLd(true);const td=new Date().toISOString().slice(0,10),ly=new Date(Date.now()-365*864e5).toISOString().slice(0,10),ny=new Date(Date.now()+365*864e5).toISOString().slice(0,10);
@@ -575,6 +683,19 @@ export default function App(){
         <div style={{position:"relative"}}><input placeholder="Search..." value={q} onChange={e=>{setQ(e.target.value);if(e.target.value){setPg("search");setViewUID(null)}}}
           style={{padding:"8px 14px 8px 32px",borderRadius:14,...glass,color:"#fff",fontSize:12,width:200,outline:"none"}}/>
           <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"rgba(255,255,255,.2)"}}>🔍</span></div>
+        {user&&<div style={{position:"relative"}}>
+          <span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:18,cursor:"pointer",color:nCount?"#fde68a":"rgba(255,255,255,.3)"}}>🔔</span>
+          {nCount>0&&<div style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:8,background:"#f87171",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,color:"#fff"}}>{nCount}</div>}
+          {showNotifs&&<div style={{position:"absolute",top:36,right:0,width:320,...glass,background:"rgba(30,27,46,.95)",borderRadius:16,padding:12,zIndex:200,maxHeight:400,overflow:"auto"}}>
+            <h4 style={{fontSize:13,fontWeight:800,marginBottom:10}}>Notifications</h4>
+            {notifs.length?notifs.slice(0,15).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11,opacity:n.read?.5:1}}>
+              {n.from?.avatar_url?<Av url={n.from.avatar_url} name={n.from.display_name} size={24} v={avV}/>
+              :<span style={{fontSize:14,flexShrink:0}}>{n.type==="follow"?"👥":n.type==="like"?"❤️":n.type==="comment"?"💬":"📌"}</span>}
+              <div style={{flex:1,minWidth:0}}><span style={{fontWeight:700}}>{n.from?.display_name||""}</span> <span style={{color:"rgba(255,255,255,.4)"}}>{n.message||n.type}</span>{n.game_title&&<span style={{color:"#67e8f9"}}> {n.game_title}</span>}</div>
+              <span style={{fontSize:9,color:"rgba(255,255,255,.1)",flexShrink:0}}>{tA(n.created_at)}</span></div>)
+            :<p style={{color:"rgba(255,255,255,.15)",fontSize:12,textAlign:"center",padding:16}}>No notifications yet</p>}
+          </div>}
+        </div>}
         {user?<Av url={prof?.avatar_url} name={dn} size={30} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>
           :<button onClick={()=>setSa(true)} style={{padding:"7px 18px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Sign In</button>}</div></nav>}
 
@@ -588,6 +709,7 @@ export default function App(){
           <span style={{fontFamily:"'Outfit'",fontSize:15,fontWeight:900,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GameBoxd</span></span>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span onClick={()=>{setQO(true);setPg("search");setViewUID(null)}} style={{fontSize:15,cursor:"pointer",color:"rgba(255,255,255,.3)"}}>🔍</span>
+          {user&&<span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:15,cursor:"pointer",color:nCount?"#fde68a":"rgba(255,255,255,.3)",position:"relative"}}>🔔{nCount>0&&<span style={{position:"absolute",top:-4,right:-6,width:12,height:12,borderRadius:6,background:"#f87171",fontSize:7,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{nCount}</span>}</span>}
           {user?<Av url={prof?.avatar_url} name={dn} size={26} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>
             :<span onClick={()=>setSa(true)} style={{fontSize:12,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:800,cursor:"pointer"}}>Sign In</span>}</div></>}</div>}
 
@@ -742,16 +864,59 @@ export default function App(){
       {pg==="stats"&&user&&<div style={{animation:"fadeIn .15s"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Stats</h2>
         {lib.length?(()=>{const bs=s=>lib.filter(g=>ud[g.id]?.status===s).length;const rt=lib.filter(g=>ud[g.id]?.myRating);const av=rt.length?(rt.reduce((s,g)=>s+ud[g.id].myRating,0)/rt.length).toFixed(1):"—";
+          // Genre breakdown from all games
+          const genres={};all.forEach(g=>{if(ud[g.id]?.status&&g.genre){g.genre.split(", ").forEach(gn=>{genres[gn]=(genres[gn]||0)+1})}});
+          const topGenres=Object.entries(genres).sort((a,b)=>b[1]-a[1]).slice(0,6);
+          // Rating distribution
+          const rDist=[0,0,0,0,0,0,0,0,0,0];rt.forEach(g=>{const r=ud[g.id]?.myRating;if(r){const idx=Math.min(Math.floor((r-0.5)/0.5),9);rDist[idx]++}});
+          const maxRD=Math.max(...rDist,1);
+          // Monthly activity (last 6 months)
+          const months={};for(let i=0;i<6;i++){const d=new Date();d.setMonth(d.getMonth()-i);const k=d.toISOString().slice(0,7);months[k]=0}
+          lib.forEach(g=>{const k=ud[g.id]?.updated_at?.slice?.(0,7)||new Date().toISOString().slice(0,7);if(months[k]!==undefined)months[k]++});
+          const monthArr=Object.entries(months).reverse();const maxM=Math.max(...monthArr.map(x=>x[1]),1);
+
           return<><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:m?8:12,marginBottom:24}}>
             {[{l:"Games",v:lib.length,c:"#67e8f9"},{l:"Done",v:bs("completed"),c:"#6ee7b7"},{l:"Playing",v:bs("playing"),c:"#c4b5fd"},{l:"Avg ★",v:av,c:"#fde68a"}].map((s,i)=>
               <div key={i} style={{...glass,padding:m?12:16,borderRadius:16,textAlign:"center"}}>
                 <div style={{fontSize:m?20:26,fontWeight:900,color:s.c}}>{s.v}</div><div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginTop:2}}>{s.l}</div></div>)}</div>
-            {Object.entries(SC).map(([k,c])=>{const cn=bs(k),mx=lib.length||1;
-              return<div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-                <span style={{width:70,fontSize:12,color:"rgba(255,255,255,.3)",fontWeight:600,textAlign:"right"}}>{c.l}</span>
-                <div style={{flex:1,height:20,background:"rgba(255,255,255,.03)",borderRadius:10,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:cn?(cn/mx*100)+"%":"0%",background:c.c,borderRadius:10,opacity:.4,transition:"width .6s"}}></div></div>
-                <span style={{fontSize:11,color:"rgba(255,255,255,.2)",width:20}}>{cn}</span></div>})}</>
+
+            {/* Status bars */}
+            <div style={{marginBottom:24}}>
+              <div className="sec-title">STATUS BREAKDOWN</div>
+              {Object.entries(SC).map(([k,c])=>{const cn=bs(k),mx=lib.length||1;
+                return<div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                  <span style={{width:70,fontSize:12,color:"rgba(255,255,255,.3)",fontWeight:600,textAlign:"right"}}>{c.l}</span>
+                  <div style={{flex:1,height:20,background:"rgba(255,255,255,.03)",borderRadius:10,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:cn?(cn/mx*100)+"%":"0%",background:c.c,borderRadius:10,opacity:.4,transition:"width .6s"}}></div></div>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,.2)",width:20}}>{cn}</span></div>})}</div>
+
+            {/* Rating Distribution */}
+            {rt.length>0&&<div style={{marginBottom:24}}>
+              <div className="sec-title">RATING DISTRIBUTION</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:m?3:4,height:80}}>
+                {rDist.map((c,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  <span style={{fontSize:8,color:"rgba(255,255,255,.2)"}}>{c||""}</span>
+                  <div style={{width:"100%",height:c?(c/maxRD*60)+8:4,background:c?"linear-gradient(to top,#67e8f9,#818cf8)":"rgba(255,255,255,.03)",borderRadius:4,opacity:c?.5:.2,transition:"height .4s"}}/>
+                  <span style={{fontSize:7,color:"rgba(255,255,255,.15)"}}>{(i*0.5+0.5).toFixed(1)}</span></div>)}</div></div>}
+
+            {/* Genre Breakdown */}
+            {topGenres.length>0&&<div style={{marginBottom:24}}>
+              <div className="sec-title">TOP GENRES</div>
+              <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(3,1fr)",gap:8}}>
+                {topGenres.map(([name,count],i)=>{const colors=["#67e8f9","#818cf8","#c4b5fd","#6ee7b7","#fde68a","#fda4af"];
+                  return<div key={name} style={{...glass,padding:"12px 14px",borderRadius:12,display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:32,height:32,borderRadius:8,background:colors[i%6]+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,color:colors[i%6]}}>{count}</div>
+                    <div><div style={{fontSize:12,fontWeight:700}}>{name}</div><div style={{fontSize:9,color:"rgba(255,255,255,.15)"}}>{Math.round(count/lib.length*100)}% of library</div></div></div>})}</div></div>}
+
+            {/* Monthly Activity */}
+            {monthArr.length>0&&<div>
+              <div className="sec-title">MONTHLY ACTIVITY</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:m?6:10,height:80}}>
+                {monthArr.map(([month,count])=><div key={month} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                  <span style={{fontSize:8,color:"rgba(255,255,255,.2)"}}>{count||""}</span>
+                  <div style={{width:"100%",height:count?(count/maxM*60)+6:4,background:count?"linear-gradient(to top,#6ee7b7,#67e8f9)":"rgba(255,255,255,.03)",borderRadius:4,opacity:count?.5:.2,transition:"height .4s"}}/>
+                  <span style={{fontSize:7,color:"rgba(255,255,255,.15)"}}>{new Date(month+"-01").toLocaleString("en",{month:"short"})}</span></div>)}</div></div>}
+          </>
         })():<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>Add games to see stats</p>}</div>}
     </main>
 
@@ -759,6 +924,20 @@ export default function App(){
       {NAV.map(n=><div key={n.id} onClick={()=>{setPg(n.id);setQ("");setQO(false);setViewUID(null)}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"2px 0"}}>
         <span style={{fontSize:18,opacity:pg===n.id?1:.2}}>{n.i}</span>
         <span style={{fontSize:8,fontWeight:800,color:pg===n.id?"#67e8f9":"rgba(255,255,255,.15)"}}>{n.l}</span></div>)}</div>}
+
+    {/* Mobile notification panel */}
+    {m&&showNotifs&&<div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:1900,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#16132a",width:"100%",maxHeight:"80vh",borderRadius:"24px 24px 0 0",overflow:"auto",border:"1px solid rgba(255,255,255,.06)",padding:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h3 style={{fontSize:18,fontWeight:900}}>Notifications</h3>
+          <button onClick={()=>setShowNotifs(false)} style={{background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer",padding:"6px 10px",borderRadius:8}}>✕</button></div>
+        {notifs.length?notifs.slice(0,20).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.03)",opacity:n.read?.5:1}}>
+          {n.from?.avatar_url?<Av url={n.from.avatar_url} name={n.from.display_name} size={28} v={avV}/>
+          :<span style={{fontSize:18,flexShrink:0}}>{n.type==="follow"?"👥":n.type==="like"?"❤️":n.type==="comment"?"💬":"📌"}</span>}
+          <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13}}>{n.from?.display_name||""}</span> <span style={{color:"rgba(255,255,255,.4)",fontSize:12}}>{n.message||n.type}</span>{n.game_title&&<div style={{color:"#67e8f9",fontSize:11,marginTop:2}}>{n.game_title}</div>}</div>
+          <span style={{fontSize:10,color:"rgba(255,255,255,.1)",flexShrink:0}}>{tA(n.created_at)}</span></div>)
+        :<p style={{color:"rgba(255,255,255,.15)",fontSize:13,textAlign:"center",padding:30}}>No notifications yet</p>}
+      </div></div>}
 
     {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} userProf={prof}/>}
   </div>}
