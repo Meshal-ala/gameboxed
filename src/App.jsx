@@ -111,34 +111,40 @@ const Av=({url,name,size=32,onClick,v})=>{const s=avUrl(url,v);return<div onClic
 const coverCache={};
 const getIGDBCover=async(name)=>{if(!name)return null;const k=name.toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
   try{const r=await fetch(`/api/igdb?action=cover&name=${encodeURIComponent(name)}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
-const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(rawgImg);const[tried,setTried]=useState(false);
-  useEffect(()=>{let c=true;setSrc(rawgImg);setTried(false);
-    if(name){const k=name.toLowerCase();if(coverCache[k]){setSrc(coverCache[k])}else if(coverCache[k]===null){/*no cover*/}else{getIGDBCover(name).then(u=>{if(c&&u)setSrc(u);setTried(true)})}}
-    return()=>{c=false}},[name,rawgImg]);return[src,(coverCache[name?.toLowerCase()]===null)||tried]};
+const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(()=>{if(name&&coverCache[name.toLowerCase()])return coverCache[name.toLowerCase()];return null});const[loading,setLoading]=useState(true);
+  useEffect(()=>{let c=true;
+    if(name){const k=name.toLowerCase();
+      if(coverCache[k]){setSrc(coverCache[k]);setLoading(false)}
+      else if(coverCache[k]===null){setSrc(rawgImg);setLoading(false)}
+      else{setLoading(true);setSrc(null);getIGDBCover(name).then(u=>{if(c){setSrc(u||rawgImg);setLoading(false)}})}}
+    else{setSrc(rawgImg);setLoading(false)}
+    return()=>{c=false}},[name,rawgImg]);return[src,loading]};
 
 /* Platform icons */
 const PlatIcon=({name,size=14})=>{const icons={PC:"🖥️",PS:"🎮",Xbox:"🟢",Switch:"🔴"};
   return<span style={{fontSize:size}} title={name}>{icons[name]||"🎮"}</span>};
 
 /* Favorite Card with cover */
-const FavCard=({fav,onClick,m})=>{const[cover]=useCover(fav.game_title,fav.game_img);
+const FavCard=({fav,onClick,m})=>{const[cover,loading]=useCover(fav.game_title,fav.game_img);
   return<div onClick={onClick} style={{width:m?75:130,cursor:"pointer"}}>
     <div style={{borderRadius:m?8:10,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 20px rgba(0,0,0,.4)",border:"2px solid rgba(253,230,138,.1)",transition:"transform .2s"}}
       onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="scale(1.03)"}} onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="scale(1)"}}>
-      {cover?<img src={cover} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
+      {loading?<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.05)",borderTopColor:"#67e8f9",borderRadius:"50%",animation:"spin .7s linear infinite"}}/></div>
+      :cover?<img src={cover} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}</div>
     <div style={{fontSize:m?9:11,fontWeight:600,marginTop:5,lineHeight:1.3,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fav.game_title}</div>
   </div>};
 
 const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState(false);const[vis,setVis]=useState(false);const[err,setErr]=useState(false);
-  const[cover]=useCover(big?null:g.t,g.img);// Only fetch covers for non-big cards (portrait)
-  useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);const u=ud?.[g.id];
+  const[cover,loading]=useCover(big?null:g.t,g.img);
+  useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);const u=ud?.[g.id];const imgSrc=big?g.img:cover;
   return<div onClick={()=>onClick?.(g)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
     style={{borderRadius:big?20:14,overflow:"hidden",cursor:"pointer",position:"relative",aspectRatio:big?"16/9":"2/3",
       opacity:vis?1:0,transform:vis?(hov&&!m?"translateY(-4px) scale(1.01)":"none"):"translateY(10px)",transition:"all .3s cubic-bezier(.4,0,.2,1)",
       boxShadow:hov?"0 20px 50px rgba(0,0,0,.5)":"0 4px 20px rgba(0,0,0,.2)"}}>
-    {!err&&(cover||g.img)?<img src={big?g.img:cover||g.img} alt={g.t} onError={()=>{if(cover&&cover!==g.img){coverCache[g.t?.toLowerCase()]=null;setErr(false)}else setErr(true)}} loading="lazy"
-      style={{width:"100%",height:"100%",objectFit:"cover",transition:"transform .5s",transform:hov&&!m?"scale(1.05)":"scale(1)"}}/>
-      :<div style={{width:"100%",height:"100%",background:"linear-gradient(145deg,#1e1b2e,#2d2640)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:big?40:24,color:"rgba(255,255,255,.05)"}}>🎮</div>}
+    {loading&&!big?<div style={{width:"100%",height:"100%",background:"linear-gradient(145deg,#1e1b2e,#2d2640)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.05)",borderTopColor:"#67e8f9",borderRadius:"50%",animation:"spin .7s linear infinite"}}/></div>
+    :!err&&imgSrc?<img src={imgSrc} alt={g.t} onError={()=>setErr(true)} loading="lazy"
+      style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:big?"center":"top",transition:"transform .5s",transform:hov&&!m?"scale(1.05)":"scale(1)"}}/>
+    :<div style={{width:"100%",height:"100%",background:"linear-gradient(145deg,#1e1b2e,#2d2640)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:big?40:24,color:"rgba(255,255,255,.05)"}}>🎮</div>}
     <div style={{position:"absolute",inset:0,background:big?"linear-gradient(to top,rgba(15,12,25,.95) 0%,rgba(15,12,25,.3) 40%,transparent 70%)":"linear-gradient(to top,rgba(15,12,25,.92) 0%,transparent 55%)"}}/>
     {g.r&&<div style={{position:"absolute",top:big?12:8,right:big?12:8,display:"flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:20,...glass,background:"rgba(15,12,25,.6)"}}>
       <span style={{color:"#fde68a",fontSize:big?12:9,fontWeight:900}}>★</span><span style={{color:"#fff",fontSize:big?12:9,fontWeight:800}}>{g.r}</span></div>}
@@ -261,7 +267,9 @@ const FLM=({userId,type,onClose,m,goUser})=>{const[list,setList]=useState([]);co
   useEffect(()=>{(async()=>{setLd(true);setList(type==="followers"?await getFollowersList(userId):await getFollowingList(userId));setLd(false)})()},[userId,type]);
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1800,background:"rgba(15,12,25,.95)",display:"flex",alignItems:m?"flex-end":"center",justifyContent:"center",padding:m?0:16}}>
     <div onClick={e=>e.stopPropagation()} style={{...glass,background:"rgba(30,27,46,.9)",width:"100%",maxWidth:m?"100%":400,maxHeight:m?"80vh":"70vh",borderRadius:m?"24px 24px 0 0":24,overflow:"auto"}}>
-      {m&&<div onClick={onClose} style={{display:"flex",justifyContent:"center",padding:"12px 0 0"}}><div style={{width:32,height:4,borderRadius:2,background:"rgba(255,255,255,.1)"}}/></div>}
+      {m&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 0"}}>
+        <button onClick={onClose} style={{padding:"6px 14px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer"}}>← Back</button>
+        <button onClick={onClose} style={{padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer"}}>✕</button></div>}
       <div style={{padding:"20px 20px 24px"}}><h3 style={{fontSize:18,fontWeight:900,marginBottom:16}}>{type==="followers"?"Followers":"Following"}</h3>
         {ld?<Loader/>:list.length?list.map(p=><div key={p.id} onClick={()=>{onClose();goUser(p.id)}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px",borderRadius:12,cursor:"pointer",marginBottom:4}}
           onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.04)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -293,8 +301,13 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
 
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:m?"flex-end":"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?0:16}}>
     <div onClick={e=>e.stopPropagation()} style={{background:"#16132a",width:"100%",maxWidth:m?"100%":660,maxHeight:m?"93vh":"88vh",borderRadius:m?"24px 24px 0 0":24,overflow:"auto",border:"1px solid rgba(255,255,255,.06)"}}>
-      {m&&<div onClick={onClose} style={{display:"flex",justifyContent:"center",padding:"12px 0 0"}}><div style={{width:32,height:4,borderRadius:2,background:"rgba(255,255,255,.1)"}}/></div>}
-      <div style={{position:"relative",height:m?180:240,overflow:"hidden"}}><img src={g.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+      {/* Mobile: drag bar + close button */}
+      {m&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 0"}}>
+        <button onClick={onClose} style={{padding:"6px 14px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer"}}>← Back</button>
+        <div style={{width:32,height:4,borderRadius:2,background:"rgba(255,255,255,.1)"}}/>
+        <button onClick={onClose} style={{padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer"}}>✕</button>
+      </div>}
+      <div style={{position:"relative",height:m?160:240,overflow:"hidden"}}><img src={g.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,#16132a 0%,transparent 100%)"}}/>
         {!m&&<button onClick={onClose} style={{position:"absolute",top:14,right:14,width:34,height:34,borderRadius:12,...glass,background:"rgba(15,12,25,.6)",border:"none",color:"#fff",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
         <div style={{position:"absolute",bottom:16,left:m?16:24}}><h2 style={{fontFamily:"'Outfit'",fontSize:m?24:32,fontWeight:900}}>{g.t}</h2>
