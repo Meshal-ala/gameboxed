@@ -37,18 +37,36 @@ export default async function handler(req, res) {
 
   const { action, name, names } = req.query;
 
+  // Helper: find best name match from results
+  function bestMatch(results, searchName) {
+    if (!results?.length) return null;
+    const s = searchName.toLowerCase().trim();
+    // Exact match first
+    const exact = results.find(g => g.name?.toLowerCase().trim() === s);
+    if (exact) return exact;
+    // Starts with match
+    const starts = results.find(g => g.name?.toLowerCase().startsWith(s) || s.startsWith(g.name?.toLowerCase()));
+    if (starts) return starts;
+    // Contains match
+    const contains = results.find(g => g.name?.toLowerCase().includes(s) || s.includes(g.name?.toLowerCase()));
+    if (contains) return contains;
+    // Default to first
+    return results[0];
+  }
+
   try {
     // Single game cover
     if (action === "cover" && name) {
       const games = await igdbPost("games",
-        `search "${name.replace(/"/g, '\\"')}"; fields name,cover.url,platforms.abbreviation; limit 1;`
+        `search "${name.replace(/"/g, '\\"')}"; fields name,cover.url,platforms.abbreviation; limit 10;`
       );
-      if (games?.[0]?.cover?.url) {
-        const url = games[0].cover.url
+      const match = bestMatch(games, name);
+      if (match?.cover?.url) {
+        const url = match.cover.url
           .replace("//", "https://")
           .replace("t_thumb", "t_cover_big_2x");
-        const platforms = (games[0].platforms || []).map(p => p.abbreviation).filter(Boolean);
-        return res.json({ cover: url, name: games[0].name, platforms });
+        const platforms = (match.platforms || []).map(p => p.abbreviation).filter(Boolean);
+        return res.json({ cover: url, name: match.name, platforms });
       }
       return res.json({ cover: null });
     }
@@ -61,10 +79,11 @@ export default async function handler(req, res) {
       for (const gn of gameNames) {
         try {
           const games = await igdbPost("games",
-            `search "${gn.replace(/"/g, '\\"')}"; fields name,cover.url; limit 1;`
+            `search "${gn.replace(/"/g, '\\"')}"; fields name,cover.url; limit 10;`
           );
-          if (games?.[0]?.cover?.url) {
-            covers[gn.toLowerCase()] = games[0].cover.url
+          const match = bestMatch(games, gn);
+          if (match?.cover?.url) {
+            covers[gn.toLowerCase()] = match.cover.url
               .replace("//", "https://")
               .replace("t_thumb", "t_cover_big_2x");
           }

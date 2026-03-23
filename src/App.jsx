@@ -287,9 +287,13 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
     if(me){getUserFavs(me.id).then(fs=>setIsFav(fs.some(f=>f.game_id===g.id)));
       // Fetch Steam achievements if user has steam linked
       if(userProf?.steam_id){(async()=>{try{
-        // Try to find steam appid by searching game name on steam
         const r=await fetch(`/api/steam?action=games&steamid=${userProf.steam_id}`);const d=await r.json();
-        const match=(d.games||[]).find(sg=>sg.name?.toLowerCase()===g.t?.toLowerCase());
+        const gameName=g.t?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
+        // Fuzzy match: strip symbols, compare
+        const match=(d.games||[]).find(sg=>{
+          const sn=sg.name?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
+          return sn===gameName || sn.includes(gameName) || gameName.includes(sn)
+        });
         if(match){const ar=await fetch(`/api/steam?action=achievements&steamid=${userProf.steam_id}&appid=${match.appid}`);const ad=await ar.json();if(ad.total>0)setAch(ad)}
       }catch{}})()}}},[g.id]);
   const toggleFav=async()=>{if(!me){setSa(true);return}setFavLd(true);if(isFav){await removeFav(me.id,g.id);setIsFav(false)}else{const ok=await addFav(me.id,g);if(!ok)alert("Max 4 favorites!");else{setIsFav(true);await postAct(me.id,"favorited",{id:g.id,title:g.t,img:g.img})}}setFavLd(false)};
