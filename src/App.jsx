@@ -203,9 +203,21 @@ const TC=({game:g,onClick,delay=0,m,ud})=>{const[vis,setVis]=useState(false);
       <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 50%)"}}/>
     </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.t}</div></div>};
 
+/* Validation */
+const validPw=p=>{if(p.length<8)return"Password must be at least 8 characters";if(!/[A-Z]/.test(p))return"Must include an uppercase letter";if(!/[a-z]/.test(p))return"Must include a lowercase letter";if(!/[0-9]/.test(p))return"Must include a number";return null};
+const checkUnique=async(field,value,myId)=>{if(!value?.trim())return false;const{data}=await supabase.from("profiles").select("id").ilike(field,value.trim()).neq("id",myId||"00000000-0000-0000-0000-000000000000").limit(1);return data?.length>0};
+
 /* Auth */
 const Auth=({onClose,onAuth})=>{const[mode,setMode]=useState("login");const[email,setEmail]=useState("");const[pw,setPw]=useState("");const[name,setName]=useState("");const[err,setErr]=useState("");const[ld,setLd]=useState(false);const[sent,setSent]=useState(false);
-  const go=async()=>{setErr("");setLd(true);try{if(mode==="signup"){const{error:e}=await supabase.auth.signUp({email,password:pw,options:{data:{display_name:name}}});if(e)throw e;setSent(true)}else{const{data,error:e}=await supabase.auth.signInWithPassword({email,password:pw});if(e)throw e;onAuth(data.user);onClose()}}catch(e){setErr(e.message)}setLd(false)};
+  const go=async()=>{setErr("");
+    if(mode==="signup"){
+      if(!name.trim()){setErr("Name is required");return}
+      const pwErr=validPw(pw);if(pwErr){setErr(pwErr);return}
+      // Check unique name
+      const nameTaken=await checkUnique("display_name",name);
+      if(nameTaken){setErr("This name is already taken");return}
+    }
+    setLd(true);try{if(mode==="signup"){const{error:e}=await supabase.auth.signUp({email,password:pw,options:{data:{display_name:name}}});if(e)throw e;setSent(true)}else{const{data,error:e}=await supabase.auth.signInWithPassword({email,password:pw});if(e)throw e;onAuth(data.user);onClose()}}catch(e){setErr(e.message)}setLd(false)};
   const inp={width:"100%",padding:"14px 16px",borderRadius:12,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:14,outline:"none",marginBottom:12};
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(24px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .15s",padding:16}}>
     <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:400,padding:"40px 32px",background:"rgba(30,27,46,.8)",animation:"slideUp .25s ease"}}>
@@ -216,17 +228,33 @@ const Auth=({onClose,onAuth})=>{const[mode,setMode]=useState("login");const[emai
         {err&&<div style={{padding:"12px",borderRadius:10,background:"rgba(253,164,175,.08)",border:"1px solid rgba(253,164,175,.15)",color:"#fda4af",fontSize:13,marginBottom:14}}>{err}</div>}
         {mode==="signup"&&<input placeholder="Name" value={name} onChange={e=>setName(e.target.value)} style={inp}/>}
         <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={inp}/>
-        <input type="password" placeholder="Password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} style={inp}/>
+        <input type="password" placeholder={mode==="signup"?"Password (8+ chars, A-z, 0-9)":"Password"} value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} style={inp}/>
+        {mode==="signup"&&pw&&<div style={{fontSize:10,marginTop:-8,marginBottom:10,display:"flex",gap:8,flexWrap:"wrap"}}>
+          <span style={{color:pw.length>=8?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ 8+ chars</span>
+          <span style={{color:/[A-Z]/.test(pw)?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ Uppercase</span>
+          <span style={{color:/[a-z]/.test(pw)?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ Lowercase</span>
+          <span style={{color:/[0-9]/.test(pw)?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ Number</span></div>}
         <button onClick={go} disabled={ld} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",marginTop:8,background:ld?"rgba(255,255,255,.05)":"linear-gradient(135deg,#67e8f9,#818cf8)",color:ld?"rgba(255,255,255,.2)":"#0f0c19",fontSize:15,fontWeight:800,cursor:ld?"default":"pointer"}}>{ld?"...":mode==="login"?"Sign In":"Create Account"}</button>
         <p style={{textAlign:"center",marginTop:18,fontSize:13,color:"rgba(255,255,255,.3)"}}>{mode==="login"?"New? ":"Already joined? "}<span onClick={()=>{setMode(mode==="login"?"signup":"login");setErr("")}} style={{color:"#67e8f9",cursor:"pointer",fontWeight:700}}>{mode==="login"?"Create account":"Sign in"}</span></p></>}</div></div>};
 
 /* Edit Profile */
 const EP=({prof,onClose,userId,onDone})=>{const[n,setN]=useState(prof?.display_name||"");const[u,setU]=useState(prof?.username||"");const[b,setB]=useState(prof?.bio||"");const[ld,setLd]=useState(false);const[upl,setUpl]=useState(false);const[avP,setAvP]=useState(null);const fr=useRef();
   const[showSec,setShowSec]=useState(false);const[newEmail,setNewEmail]=useState("");const[newPw,setNewPw]=useState("");const[secMsg,setSecMsg]=useState("");const[secLd,setSecLd]=useState(false);
-  const sv=async()=>{setLd(true);await saveProf(userId,{display_name:n,username:u.toLowerCase().replace(/[^a-z0-9_]/g,""),bio:b});setLd(false);await onDone();onClose()};
+  const[svErr,setSvErr]=useState("");
+  const sv=async()=>{setSvErr("");
+    if(!n.trim()){setSvErr("Name is required");return}
+    const cleanU=u.toLowerCase().replace(/[^a-z0-9_]/g,"");
+    if(cleanU&&cleanU.length<3){setSvErr("Username must be at least 3 characters");return}
+    // Check unique name
+    const nameTaken=await checkUnique("display_name",n,userId);
+    if(nameTaken){setSvErr("This name is already taken");return}
+    // Check unique username
+    if(cleanU){const userTaken=await checkUnique("username",cleanU,userId);
+      if(userTaken){setSvErr("This username is already taken");return}}
+    setLd(true);await saveProf(userId,{display_name:n.trim(),username:cleanU,bio:b});setLd(false);await onDone();onClose()};
   const hf=async e=>{const f=e.target.files[0];if(!f)return;setUpl(true);setAvP(URL.createObjectURL(f));try{await upAv(userId,f);await onDone()}catch(er){alert("Upload failed: "+er.message)}setUpl(false)};
   const changeEmail=async()=>{if(!newEmail.trim())return;setSecLd(true);setSecMsg("");const{error}=await supabase.auth.updateUser({email:newEmail.trim()});setSecLd(false);if(error)setSecMsg("❌ "+error.message);else setSecMsg("✅ Check your new email for confirmation link")};
-  const changePw=async()=>{if(newPw.length<6){setSecMsg("❌ Password must be at least 6 characters");return}setSecLd(true);setSecMsg("");const{error}=await supabase.auth.updateUser({password:newPw});setSecLd(false);if(error)setSecMsg("❌ "+error.message);else{setSecMsg("✅ Password updated!");setNewPw("")}};
+  const changePw=async()=>{const pwErr=validPw(newPw);if(pwErr){setSecMsg("❌ "+pwErr);return}setSecLd(true);setSecMsg("");const{error}=await supabase.auth.updateUser({password:newPw});setSecLd(false);if(error)setSecMsg("❌ "+error.message);else{setSecMsg("✅ Password updated!");setNewPw("")}};
   const inp={width:"100%",padding:"12px 14px",borderRadius:12,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:14,outline:"none",marginBottom:14};
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(20px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:400,padding:"32px 28px",background:"rgba(30,27,46,.8)",maxHeight:"90vh",overflow:"auto"}}>
@@ -241,6 +269,7 @@ const EP=({prof,onClose,userId,onDone})=>{const[n,setN]=useState(prof?.display_n
       <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>NAME</label><input value={n} onChange={e=>setN(e.target.value)} style={inp}/>
       <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>USERNAME</label><input value={u} onChange={e=>setU(e.target.value)} style={inp} placeholder="username"/>
       <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>BIO</label><textarea value={b} onChange={e=>setB(e.target.value)} rows={3} style={{...inp,resize:"none",fontFamily:"inherit"}}/>
+      {svErr&&<div style={{padding:"10px 12px",borderRadius:10,background:"rgba(253,164,175,.08)",border:"1px solid rgba(253,164,175,.15)",color:"#fda4af",fontSize:12,fontWeight:600,marginBottom:8}}>{svErr}</div>}
       <div style={{display:"flex",gap:10,marginTop:4}}>
         <button onClick={onClose} style={{flex:1,padding:"13px",borderRadius:12,...glass,color:"rgba(255,255,255,.5)",fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
         <button onClick={sv} disabled={ld} style={{flex:1,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>{ld?"...":"Save"}</button></div>
@@ -254,9 +283,14 @@ const EP=({prof,onClose,userId,onDone})=>{const[n,setN]=useState(prof?.display_n
             <input value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="newemail@example.com" style={{...inp,marginBottom:0,flex:1}}/>
             <button onClick={changeEmail} disabled={secLd||!newEmail.trim()} style={{padding:"10px 14px",borderRadius:12,border:"none",background:newEmail.trim()?"#67e8f9":"rgba(255,255,255,.04)",color:newEmail.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:newEmail.trim()?"pointer":"default",flexShrink:0}}>Update</button></div>
           <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>NEW PASSWORD</label>
-          <div style={{display:"flex",gap:6,marginBottom:8}}>
-            <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="Min 6 characters" style={{...inp,marginBottom:0,flex:1}}/>
-            <button onClick={changePw} disabled={secLd||newPw.length<6} style={{padding:"10px 14px",borderRadius:12,border:"none",background:newPw.length>=6?"#67e8f9":"rgba(255,255,255,.04)",color:newPw.length>=6?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:newPw.length>=6?"pointer":"default",flexShrink:0}}>Update</button></div>
+          <div style={{display:"flex",gap:6,marginBottom:4}}>
+            <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="Min 8 chars, A-z, 0-9" style={{...inp,marginBottom:0,flex:1}}/>
+            <button onClick={changePw} disabled={secLd||!newPw} style={{padding:"10px 14px",borderRadius:12,border:"none",background:newPw&&!validPw(newPw)?"#67e8f9":"rgba(255,255,255,.04)",color:newPw&&!validPw(newPw)?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:newPw&&!validPw(newPw)?"pointer":"default",flexShrink:0}}>Update</button></div>
+          {newPw&&<div style={{fontSize:10,marginBottom:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+            <span style={{color:newPw.length>=8?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ 8+ chars</span>
+            <span style={{color:/[A-Z]/.test(newPw)?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ Uppercase</span>
+            <span style={{color:/[a-z]/.test(newPw)?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ Lowercase</span>
+            <span style={{color:/[0-9]/.test(newPw)?"#6ee7b7":"rgba(255,255,255,.2)"}}>✓ Number</span></div>}
           {secMsg&&<div style={{padding:"8px 12px",borderRadius:8,background:secMsg.startsWith("✅")?"rgba(110,231,183,.1)":"rgba(253,164,175,.1)",color:secMsg.startsWith("✅")?"#6ee7b7":"#fda4af",fontSize:12,fontWeight:600}}>{secMsg}</div>}
         </div>}
       </div>
