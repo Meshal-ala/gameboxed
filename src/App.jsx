@@ -516,9 +516,10 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
   return<div style={{animation:"fadeIn .15s"}}>
     {/* Header — custom banner */}
-    <div style={{height:m?100:150,borderRadius:20,background:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",marginBottom:m?-30:-40,position:"relative",overflow:"hidden"}}>
+    <div style={{position:"relative",marginBottom:m?-30:-40}}>
+      <div style={{height:m?100:150,borderRadius:20,background:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden"}}/>
       {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBanner} style={{display:"none"}}/>
-        <button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",bottom:8,right:8,padding:"4px 10px",borderRadius:8,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)"}}>📷 Banner</button></>}
+        <button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",bottom:m?10:12,right:m?10:12,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.6)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:5}}>📷 Banner</button></>}
     </div>
     <div style={{display:"flex",alignItems:m?"center":"flex-start",gap:m?14:20,marginBottom:16,flexDirection:m?"column":"row",position:"relative",padding:m?"0 12px":"0 20px"}}>
       <Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/>
