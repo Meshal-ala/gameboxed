@@ -507,6 +507,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const[diary,setDiary]=useState([]);const[showDiaryForm,setShowDiaryForm]=useState(false);const[dGame,setDGame]=useState("");const[dNote,setDNote]=useState("");const[dDate,setDDate]=useState(new Date().toISOString().slice(0,10));const[dRating,setDRating]=useState(0);const[dHours,setDHours]=useState("");
   const[dResults,setDResults]=useState([]);const[dSelGame,setDSelGame]=useState(null);
   const[bannerPreview,setBannerPreview]=useState(null);const[bannerFile,setBannerFile]=useState(null);const[bannerSaving,setBannerSaving]=useState(false);
+  const[libF,setLibF]=useState("all");
   const isSelf=me?.id===viewId;const bannerRef=useRef();
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name});await sendNotif(viewId,me.id,"follow",`${me.user_metadata?.display_name||"Someone"} followed you`)}};
@@ -575,11 +576,11 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
       {/* Recent activity preview */}
       {acts.length>0&&<div style={{marginBottom:20}}><div className="sec-title">RECENT ACTIVITY</div>
-        {acts.slice(0,5).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
+        {acts.slice(0,5).map(a=><div key={a.id} onClick={()=>{if(a.game_id){const found=allGames.find(x=>x.id===a.game_id);if(found)setSel?.(found);else setSel?.({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}else if(a.target_user_id)goUser(a.target_user_id)}} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11,cursor:a.game_id||a.target_user_id?"pointer":"default"}}>
           <span style={{fontSize:9,color:"rgba(255,255,255,.1)",width:22,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
           <span style={{fontSize:12,flexShrink:0}}>{actIcon(a.action)}</span>
           {a.game_img&&<div style={{width:22,height:30,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
-          <div style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{a.game_title||a.target_user_name||""}</span> <span style={{color:"rgba(255,255,255,.12)"}}>{actLabel(a.action)}</span></div>
+          <div style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600,color:a.game_id||a.target_user_id?"#67e8f9":"inherit"}}>{a.game_title||a.target_user_name||""}</span> <span style={{color:"rgba(255,255,255,.12)"}}>{actLabel(a.action)}</span></div>
           {a.rating?<Stars rating={parseFloat(a.rating)} size={7}/>:null}
         </div>)}</div>}
 
@@ -595,14 +596,17 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
     {/* ═ TAB: Games ═ */}
     {tab==="games"&&<div>
-      {gs.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:5}}>
-        {gs.map(g=>{const found=allGames.find(x=>x.id===g.game_id);const gObj=found||{id:g.game_id,t:g.game_title,img:g.game_img,y:"",genre:"",r:null,pf:[]};
+      {gs.length>0&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+        {[{k:"all",l:"All",c:"#fff"},{k:"completed",l:"Done",c:"#6ee7b7"},{k:"playing",l:"Playing",c:"#67e8f9"},{k:"wishlist",l:"Wishlist",c:"#fde68a"},{k:"backlog",l:"Backlog",c:"#c4b5fd"},{k:"dropped",l:"Dropped",c:"#fda4af"}].map(f=>
+          <button key={f.k} onClick={()=>setLibF(f.k)} style={{padding:"4px 10px",borderRadius:8,border:"none",background:libF===f.k?f.c+"22":"rgba(255,255,255,.03)",color:libF===f.k?f.c:"rgba(255,255,255,.25)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{f.l} {f.k==="all"?gs.length:gs.filter(g=>g.status===f.k).length}</button>)}</div>}
+      {(()=>{const filtered=libF==="all"?gs:gs.filter(g=>g.status===libF);return filtered.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:5}}>
+        {filtered.map(g=>{const found=allGames.find(x=>x.id===g.game_id);const gObj=found||{id:g.game_id,t:g.game_title,img:g.game_img,y:"",genre:"",r:null,pf:[]};
           return<div key={g.game_id} onClick={()=>setSel?.(gObj)} style={{borderRadius:5,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)",cursor:"pointer"}}>
           {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
           {g.status&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:SC[g.status]?.c||"#fff"}}/>}
           {g.my_rating&&<div style={{position:"absolute",top:2,right:2,padding:"1px 4px",borderRadius:3,background:"rgba(0,0,0,.7)",fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
         </div>})}</div>
-      :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games yet</p>}
+      :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>{libF==="all"?"No games yet":"No "+libF+" games"}</p>})()}
     </div>}
 
     {/* ═ TAB: Diary ═ */}
@@ -694,12 +698,13 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
     {/* ═ TAB: Activity ═ */}
     {tab==="activity"&&<div>
-      {acts.length>0?acts.map(a=><div key={a.id} style={{...glass,borderRadius:12,padding:"10px 14px",marginBottom:5,display:"flex",gap:10,alignItems:"center"}}>
+      {acts.length>0?acts.map(a=><div key={a.id} style={{...glass,borderRadius:12,padding:"10px 14px",marginBottom:5,display:"flex",gap:10,alignItems:"center",cursor:a.game_id||a.target_user_id?"pointer":"default"}}
+        onClick={()=>{if(a.game_id){const found=allGames.find(x=>x.id===a.game_id);if(found)setSel?.(found);else setSel?.({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}else if(a.target_user_id)goUser(a.target_user_id)}}>
         <span style={{fontSize:10,color:"rgba(255,255,255,.1)",width:28,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
         <span style={{fontSize:14,flexShrink:0}}>{actIcon(a.action)}</span>
         {a.game_img&&<div style={{width:30,height:40,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.game_title||a.target_user_name||""}</div>
+          <div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:a.game_id||a.target_user_id?"#67e8f9":"inherit"}}>{a.game_title||a.target_user_name||""}</div>
           <div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{actLabel(a.action)}{a.extra_text?" · "+a.extra_text:""}</div>
         </div>
         {a.rating?<Stars rating={parseFloat(a.rating)} size={9}/>:null}
@@ -719,6 +724,8 @@ export default function App(){
   const[sr,setSr]=useState([]);const[pSr,setPSr]=useState([]);const[lSr,setLSr]=useState([]);
   const[ld,setLd]=useState(true);const[sng,setSng]=useState(false);const[lf,setLf]=useState("all");const[sT,setST]=useState("games");
   const[myL,setMyL]=useState([]);const[nLN,setNLN]=useState("");const[feed,setFeed]=useState([]);const[rRev,setRRev]=useState([]);const[news,setNews]=useState([]);
+  const[expGames,setExpGames]=useState([]);const[expLd,setExpLd]=useState(false);const[expPage,setExpPage]=useState(1);
+  const[fGenre,setFGenre]=useState(null);const[fPlat,setFPlat]=useState(null);const[fSort,setFSort]=useState("-rating");
   const stt=useRef(null);const skipPush=useRef(false);
 
   // Browser history — wrap setPg to push state
@@ -732,6 +739,7 @@ export default function App(){
     window.addEventListener("popstate",onPop);return()=>window.removeEventListener("popstate",onPop)},[]);
 
   const rf=()=>{if(user){loadFeed(user.id).then(setFeed);loadRR(user.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}};
+  useEffect(()=>{if(pg==="explore"&&expGames.length===0)loadExplore(1)},[pg]);
   const reloadProf=useCallback(async()=>{if(!user)return;const p=await lp(user.id);setProf(p);setAvV(Date.now());getFC(user.id).then(setFc)},[user]);
 
   useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc);loadNotifs(u.id).then(setNotifs);unreadCount(u.id).then(setNCount);loadRR(u.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}});loadNews().then(setNews);
@@ -745,7 +753,14 @@ export default function App(){
   useEffect(()=>{if(stt.current)clearTimeout(stt.current);if(!q.trim()){setSr([]);setPSr([]);setLSr([]);return}setSng(true);
     stt.current=setTimeout(async()=>{const[g,p,l]=await Promise.all([sga(q),searchPeople(q),searchLists(q)]);setSr(g.map(nm));setPSr(p);setLSr(l);setSng(false)},400)},[q]);
 
-  const all=[...pop,...best,...fresh,...soon,...actG,...rpg,...indie,...sr];
+  const all=[...pop,...best,...fresh,...soon,...actG,...rpg,...indie,...sr,...expGames];
+  const GENRES=[{id:4,n:"Action"},{id:5,n:"RPG"},{id:3,n:"Adventure"},{id:51,n:"Indie"},{id:2,n:"Shooter"},{id:10,n:"Strategy"},{id:1,n:"Racing"},{id:7,n:"Puzzle"},{id:14,n:"Simulation"},{id:11,n:"Arcade"},{id:83,n:"Platformer"},{id:15,n:"Sports"},{id:6,n:"Fighting"},{id:59,n:"MMO"}];
+  const PLATS=[{id:4,n:"PC",c:"#67e8f9"},{id:187,n:"PS5",c:"#818cf8"},{id:18,n:"PS4",c:"#818cf8"},{id:1,n:"Xbox One",c:"#6ee7b7"},{id:186,n:"Xbox S|X",c:"#6ee7b7"},{id:7,n:"Switch",c:"#fda4af"}];
+  const SORTS=[{v:"-rating",l:"Top Rated"},{v:"-released",l:"Newest"},{v:"-added",l:"Most Popular"},{v:"-metacritic",l:"Metacritic"},{v:"name",l:"A-Z"}];
+  const loadExplore=useCallback(async(page=1,genre=fGenre,plat=fPlat,sort=fSort)=>{
+    setExpLd(true);let p=`&ordering=${sort}&page=${page}&page_size=40`;
+    if(genre)p+=`&genres=${genre}`;if(plat)p+=`&platforms=${plat}`;
+    const r=await fg(p);setExpGames(prev=>page===1?r.map(nm):[...prev,...r.map(nm)]);setExpLd(false)},[fGenre,fPlat,fSort]);
   const lib=Object.entries(ud).filter(([_,v])=>v.status).map(([id,v])=>{const f=all.find(g=>g.id===parseInt(id));return f||{id:parseInt(id),t:v.title||"?",img:v.img||"",y:"",genre:"",r:null,pf:[]}});
   const flib=lf==="all"?lib:lib.filter(g=>ud[g.id]?.status===lf);
   const so=async()=>{await supabase.auth.signOut();setUser(null);setUd({});setProf(null);setPg("home")};
@@ -888,7 +903,7 @@ export default function App(){
                   <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={20} onClick={()=>goUser(r.user_id)} v={avV}/>
                   <span style={{fontSize:11,fontWeight:700,flex:1,cursor:"pointer"}} onClick={()=>goUser(r.user_id)}>{r.profiles?.display_name}</span>
                   {r.rating>0&&<span style={{fontSize:9,color:"#fde68a"}}>★{r.rating}</span>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div>
-                <div style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3}}>{r.game_title}</div>
+                <div onClick={()=>{const found=all.find(x=>x.id===r.game_id);if(found)setSel(found);else if(r.game_id)setSel({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3,cursor:"pointer"}}>{r.game_title}</div>
                 <p style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
             {user&&<><div className="sec-title">⚡ FOLLOWING</div>
               {feed.length?feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
@@ -897,8 +912,8 @@ export default function App(){
                   <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
                   <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
                   <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
-                  {a.game_title&&<span style={{color:"#67e8f9"}}>{a.game_title}</span>}
-                  {a.action==="followed"&&a.target_user_name&&<span style={{color:"#67e8f9"}}>{a.target_user_name}</span>}
+                  {a.game_title&&<span onClick={()=>{const found=all.find(x=>x.id===a.game_id);if(found)setSel(found);else if(a.game_id)setSel({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.game_title}</span>}
+                  {a.action==="followed"&&a.target_user_name&&<span onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.target_user_name}</span>}
                 </div>
                 <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
               :<p style={{textAlign:"center",padding:20,color:"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
@@ -946,12 +961,39 @@ export default function App(){
         </div>)
         :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
 
-      {/* EXPLORE */}
+      {/* EXPLORE — Filtered Browse */}
       {pg==="explore"&&<div style={{animation:"fadeIn .15s"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Explore</h2>
-        {ld?<Loader/>:<>{[{t:"HIGHEST RATED",d:best},{t:"POPULAR",d:pop},{t:"NEW",d:fresh},{t:"ACTION",d:actG},{t:"RPG",d:rpg},{t:"INDIE",d:indie}].map(s=>
-          <div key={s.t} style={{marginBottom:24}}><div className="sec-title">{s.t}</div>
-            <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(140px,1fr))",gap:m?8:12}}>{s.d.map((g,i)=><GC key={g.id} game={g} delay={i*12} onClick={setSel} mobile={m} ud={ud}/>)}</div></div>)}</>}</div>}
+        <div style={{display:m?"block":"flex",gap:20}}>
+          {/* Filters sidebar */}
+          <div style={{width:m?"100%":200,flexShrink:0,marginBottom:m?16:0}}>
+            {/* Sort */}
+            <div style={{marginBottom:14}}><div style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",marginBottom:6}}>SORT BY</div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{SORTS.map(s=>
+                <button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,fGenre,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:fSort===s.v?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div></div>
+            {/* Genres */}
+            <div style={{marginBottom:14}}><div style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",marginBottom:6}}>GENRE</div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                <button onClick={()=>{setFGenre(null);setExpPage(1);loadExplore(1,null,fPlat,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:!fGenre?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:!fGenre?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>All</button>
+                {GENRES.map(g=>
+                  <button key={g.id} onClick={()=>{setFGenre(g.id);setExpPage(1);loadExplore(1,g.id,fPlat,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fGenre===g.id?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:fGenre===g.id?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{g.n}</button>)}</div></div>
+            {/* Platforms */}
+            <div style={{marginBottom:14}}><div style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",marginBottom:6}}>PLATFORM</div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                <button onClick={()=>{setFPlat(null);setExpPage(1);loadExplore(1,fGenre,null,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:!fPlat?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:!fPlat?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>All</button>
+                {PLATS.map(p=>
+                  <button key={p.id} onClick={()=>{setFPlat(p.id);setExpPage(1);loadExplore(1,fGenre,p.id,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":"rgba(255,255,255,.03)",color:fPlat===p.id?p.c:"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{p.n}</button>)}</div></div>
+          </div>
+          {/* Game grid */}
+          <div style={{flex:1}}>
+            {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>Select filters or change sort to browse games</p>}
+            <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(140px,1fr))",gap:m?8:12}}>
+              {expGames.map((g,i)=><GC key={g.id} game={g} delay={Math.min(i,20)*8} onClick={setSel} mobile={m} ud={ud}/>)}</div>
+            {expLd&&<Loader/>}
+            {expGames.length>0&&!expLd&&<div style={{textAlign:"center",marginTop:20}}>
+              <button onClick={()=>{const np=expPage+1;setExpPage(np);loadExplore(np)}} style={{padding:"12px 32px",borderRadius:14,...glass,border:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.4)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Load More</button></div>}
+          </div>
+        </div></div>}
 
       {/* LIBRARY */}
       {pg==="library"&&user&&<div style={{animation:"fadeIn .15s"}}>
