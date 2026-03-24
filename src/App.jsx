@@ -30,11 +30,16 @@ const addFav=async(uid,game)=>{const{data:existing}=await supabase.from("favorit
 const removeFav=async(uid,gameId)=>{await supabase.from("favorites").delete().eq("user_id",uid).eq("game_id",gameId)};
 const getUserFavs=async uid=>{const{data}=await supabase.from("favorites").select("*").eq("user_id",uid).order("position");return data||[]};
 const postAct=async(uid,act,g,extra)=>{await supabase.from("activities").insert({user_id:uid,action:act,game_id:g?.id,game_title:g?.title||g?.t,game_img:g?.img,rating:g?.rating,extra_text:extra?.text,target_user_id:extra?.targetUserId,target_user_name:extra?.targetUserName})};
-const loadFeed=async uid=>{const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",uid);const ids=[uid,...(fo||[]).map(f=>f.following_id)];const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").in("user_id",ids).order("created_at",{ascending:false}).limit(40);return data||[]};
-const loadAllFeed=async()=>{const{data}=await supabase.from("activities").select("*,profiles(display_name,username,avatar_url)").order("created_at",{ascending:false}).limit(40);return data||[]};
-const loadGR=async gid=>{const{data}=await supabase.from("reviews").select("*,profiles(display_name,username,avatar_url)").eq("game_id",gid).order("created_at",{ascending:false}).limit(20);return data||[]};
+const _enrichActs=async data=>{if(!data?.length)return[];const uids=[...new Set(data.map(a=>a.user_id))];const{data:profs}=await supabase.from("profiles").select("id,display_name,username,avatar_url").in("id",uids);const pm={};(profs||[]).forEach(p=>pm[p.id]=p);return data.map(a=>({...a,profiles:pm[a.user_id]||null}))};
+const loadFeed=async uid=>{const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",uid);const ids=[uid,...(fo||[]).map(f=>f.following_id)];const{data}=await supabase.from("activities").select("*").in("user_id",ids).order("created_at",{ascending:false}).limit(40);return _enrichActs(data)};
+const loadAllFeed=async()=>{const{data}=await supabase.from("activities").select("*").order("created_at",{ascending:false}).limit(40);return _enrichActs(data)};
+const loadGR=async gid=>{const{data}=await supabase.from("reviews").select("*").eq("game_id",gid).order("created_at",{ascending:false}).limit(20);
+  if(!data?.length)return[];const uids=[...new Set(data.map(r=>r.user_id))];const{data:profs}=await supabase.from("profiles").select("id,display_name,username,avatar_url").in("id",uids);
+  const pm={};(profs||[]).forEach(p=>pm[p.id]=p);return data.map(r=>({...r,profiles:pm[r.user_id]||null}))};
 const postRev=async(uid,g,r,t)=>{await supabase.from("reviews").insert({user_id:uid,game_id:g.id,game_title:g.t||g.title,game_img:g.img,rating:r,text:t});await postAct(uid,"reviewed",{id:g.id,title:g.t||g.title,img:g.img})};
-const loadRR=async()=>{const{data}=await supabase.from("reviews").select("*,profiles(display_name,username,avatar_url)").order("created_at",{ascending:false}).limit(10);return data||[]};
+const loadRR=async()=>{const{data}=await supabase.from("reviews").select("*").order("created_at",{ascending:false}).limit(10);
+  if(!data?.length)return[];const uids=[...new Set(data.map(r=>r.user_id))];const{data:profs}=await supabase.from("profiles").select("id,display_name,username,avatar_url").in("id",uids);
+  const pm={};(profs||[]).forEach(p=>pm[p.id]=p);return data.map(r=>({...r,profiles:pm[r.user_id]||null}))};
 const followU=async(a,b)=>await supabase.from("follows").insert({follower_id:a,following_id:b});
 const unfollowU=async(a,b)=>await supabase.from("follows").delete().eq("follower_id",a).eq("following_id",b);
 const chkF=async(a,b)=>{const{data}=await supabase.from("follows").select("id").eq("follower_id",a).eq("following_id",b).single();return!!data};
@@ -59,12 +64,20 @@ const getRevLikes=async revId=>{const{count}=await supabase.from("review_likes")
 const didLike=async(uid,revId)=>{const{data}=await supabase.from("review_likes").select("id").eq("user_id",uid).eq("review_id",revId).single();return!!data};
 
 /* Review Comments */
-const loadComments=async revId=>{const{data}=await supabase.from("review_comments").select("*,profiles(display_name,username,avatar_url)").eq("review_id",revId).order("created_at",{ascending:true}).limit(30);return data||[]};
+const loadComments=async revId=>{const{data}=await supabase.from("review_comments").select("*").eq("review_id",revId).order("created_at",{ascending:true}).limit(30);
+  if(!data?.length)return[];const uids=[...new Set(data.map(c=>c.user_id))];const{data:profs}=await supabase.from("profiles").select("id,display_name,username,avatar_url").in("id",uids);
+  const pm={};(profs||[]).forEach(p=>pm[p.id]=p);return data.map(c=>({...c,profiles:pm[c.user_id]||null}))};
 const postComment=async(uid,revId,text)=>supabase.from("review_comments").insert({user_id:uid,review_id:revId,text});
 const deleteComment=async id=>supabase.from("review_comments").delete().eq("id",id);
 
 /* Notifications */
-const loadNotifs=async uid=>{const{data}=await supabase.from("notifications").select("*,from:profiles!notifications_from_user_id_fkey(display_name,avatar_url)").eq("user_id",uid).order("created_at",{ascending:false}).limit(30);return data||[]};
+const loadNotifs=async uid=>{const{data}=await supabase.from("notifications").select("*").eq("user_id",uid).order("created_at",{ascending:false}).limit(30);
+  if(!data?.length)return[];
+  // Get sender profiles
+  const senderIds=[...new Set(data.filter(n=>n.from_user_id).map(n=>n.from_user_id))];
+  const{data:senders}=senderIds.length?await supabase.from("profiles").select("id,display_name,avatar_url").in("id",senderIds):{data:[]};
+  const sm={};(senders||[]).forEach(s=>sm[s.id]=s);
+  return data.map(n=>({...n,from:sm[n.from_user_id]||null}))};
 const unreadCount=async uid=>{const{count}=await supabase.from("notifications").select("*",{count:"exact",head:true}).eq("user_id",uid).eq("read",false);return count||0};
 const markRead=async uid=>supabase.from("notifications").update({read:true}).eq("user_id",uid).eq("read",false);
 const sendNotif=async(toUid,fromUid,type,msg,extra)=>supabase.from("notifications").insert({user_id:toUid,from_user_id:fromUid,type,message:msg,game_title:extra?.game,review_id:extra?.revId});
@@ -209,11 +222,14 @@ const Auth=({onClose,onAuth})=>{const[mode,setMode]=useState("login");const[emai
 
 /* Edit Profile */
 const EP=({prof,onClose,userId,onDone})=>{const[n,setN]=useState(prof?.display_name||"");const[u,setU]=useState(prof?.username||"");const[b,setB]=useState(prof?.bio||"");const[ld,setLd]=useState(false);const[upl,setUpl]=useState(false);const[avP,setAvP]=useState(null);const fr=useRef();
+  const[showSec,setShowSec]=useState(false);const[newEmail,setNewEmail]=useState("");const[newPw,setNewPw]=useState("");const[secMsg,setSecMsg]=useState("");const[secLd,setSecLd]=useState(false);
   const sv=async()=>{setLd(true);await saveProf(userId,{display_name:n,username:u.toLowerCase().replace(/[^a-z0-9_]/g,""),bio:b});setLd(false);await onDone();onClose()};
   const hf=async e=>{const f=e.target.files[0];if(!f)return;setUpl(true);setAvP(URL.createObjectURL(f));try{await upAv(userId,f);await onDone()}catch(er){alert("Upload failed: "+er.message)}setUpl(false)};
+  const changeEmail=async()=>{if(!newEmail.trim())return;setSecLd(true);setSecMsg("");const{error}=await supabase.auth.updateUser({email:newEmail.trim()});setSecLd(false);if(error)setSecMsg("❌ "+error.message);else setSecMsg("✅ Check your new email for confirmation link")};
+  const changePw=async()=>{if(newPw.length<6){setSecMsg("❌ Password must be at least 6 characters");return}setSecLd(true);setSecMsg("");const{error}=await supabase.auth.updateUser({password:newPw});setSecLd(false);if(error)setSecMsg("❌ "+error.message);else{setSecMsg("✅ Password updated!");setNewPw("")}};
   const inp={width:"100%",padding:"12px 14px",borderRadius:12,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:14,outline:"none",marginBottom:14};
   return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(20px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:400,padding:"32px 28px",background:"rgba(30,27,46,.8)"}}>
+    <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:400,padding:"32px 28px",background:"rgba(30,27,46,.8)",maxHeight:"90vh",overflow:"auto"}}>
       <h2 style={{fontSize:22,fontWeight:900,marginBottom:24}}>Edit Profile</h2>
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
         <div style={{width:64,height:64,borderRadius:20,overflow:"hidden",flexShrink:0,background:"rgba(255,255,255,.04)"}}>
@@ -227,7 +243,24 @@ const EP=({prof,onClose,userId,onDone})=>{const[n,setN]=useState(prof?.display_n
       <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>BIO</label><textarea value={b} onChange={e=>setB(e.target.value)} rows={3} style={{...inp,resize:"none",fontFamily:"inherit"}}/>
       <div style={{display:"flex",gap:10,marginTop:4}}>
         <button onClick={onClose} style={{flex:1,padding:"13px",borderRadius:12,...glass,color:"rgba(255,255,255,.5)",fontSize:14,fontWeight:700,cursor:"pointer"}}>Cancel</button>
-        <button onClick={sv} disabled={ld} style={{flex:1,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>{ld?"...":"Save"}</button></div></div></div>};
+        <button onClick={sv} disabled={ld} style={{flex:1,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>{ld?"...":"Save"}</button></div>
+
+      {/* Security Settings */}
+      <div style={{marginTop:20,borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:16}}>
+        <button onClick={()=>setShowSec(!showSec)} style={{width:"100%",padding:"10px 14px",borderRadius:12,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"left"}}>🔒 {showSec?"Hide":"Change Email & Password"}</button>
+        {showSec&&<div style={{marginTop:12}}>
+          <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>NEW EMAIL</label>
+          <div style={{display:"flex",gap:6,marginBottom:12}}>
+            <input value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="newemail@example.com" style={{...inp,marginBottom:0,flex:1}}/>
+            <button onClick={changeEmail} disabled={secLd||!newEmail.trim()} style={{padding:"10px 14px",borderRadius:12,border:"none",background:newEmail.trim()?"#67e8f9":"rgba(255,255,255,.04)",color:newEmail.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:newEmail.trim()?"pointer":"default",flexShrink:0}}>Update</button></div>
+          <label style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",display:"block",marginBottom:4}}>NEW PASSWORD</label>
+          <div style={{display:"flex",gap:6,marginBottom:8}}>
+            <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="Min 6 characters" style={{...inp,marginBottom:0,flex:1}}/>
+            <button onClick={changePw} disabled={secLd||newPw.length<6} style={{padding:"10px 14px",borderRadius:12,border:"none",background:newPw.length>=6?"#67e8f9":"rgba(255,255,255,.04)",color:newPw.length>=6?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:newPw.length>=6?"pointer":"default",flexShrink:0}}>Update</button></div>
+          {secMsg&&<div style={{padding:"8px 12px",borderRadius:8,background:secMsg.startsWith("✅")?"rgba(110,231,183,.1)":"rgba(253,164,175,.1)",color:secMsg.startsWith("✅")?"#6ee7b7":"#fda4af",fontSize:12,fontWeight:600}}>{secMsg}</div>}
+        </div>}
+      </div>
+    </div></div>};
 
 /* Steam Link Modal */
 const SteamModal=({onClose,userId,onDone})=>{const[input,setInput]=useState("");const[ld,setLd]=useState(false);const[step,setStep]=useState("input");const[steamProf,setSteamProf]=useState(null);const[games,setGames]=useState([]);const[progress,setProgress]=useState(0);const[total,setTotal]=useState(0);
@@ -442,7 +475,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const submitDiary=async()=>{if(!dSelGame||!me)return;await addDiary(me.id,{game_id:dSelGame.id,game_title:dSelGame.t,game_img:dSelGame.img,played_on:dDate,note:dNote,rating:dRating||null,hours_played:parseFloat(dHours)||0});
     await postAct(me.id,"logged",{id:dSelGame.id,title:dSelGame.t,img:dSelGame.img,rating:dRating||null});setDiary(await loadDiary(viewId));setShowDiaryForm(false);setDGame("");setDNote("");setDRating(0);setDHours("");setDSelGame(null)};
   const rmDiary=async id=>{await deleteDiary(id);setDiary(diary.filter(d=>d.id!==id))};
-  const handleBanner=async e=>{const f=e.target.files[0];if(!f)return;try{await upBanner(me.id,f);onBanner?.()}catch(er){alert("Banner upload failed")}};
+  const handleBanner=async e=>{const f=e.target.files[0];if(!f)return;try{await upBanner(me.id,f);const newP=await lp(me.id);setP(newP);onBanner?.()}catch(er){alert("Banner upload failed: "+er.message)}};
   const shareUrl=`https://gameboxed.vercel.app/?user=${viewId}`;
   if(ld)return<Loader/>;
   const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
@@ -857,7 +890,7 @@ export default function App(){
 
       {/* MY PROFILE — full page */}
       {pg==="profile"&&user&&<div style={{animation:"fadeIn .15s"}}>
-        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all} myLists={myL} reloadLists={()=>loadLists(user.id).then(setMyL)} setSel={setSel}/>
+        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all} myLists={myL} reloadLists={()=>loadLists(user.id).then(setMyL)} setSel={setSel} onBanner={reloadProf}/>
       </div>}
 
       {/* STATS */}
