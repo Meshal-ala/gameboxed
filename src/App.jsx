@@ -506,6 +506,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const[tab,setTab]=useState("profile");const[editRevId,setEditRevId]=useState(null);const[editRevText,setEditRevText]=useState("");const[editRevRating,setEditRevRating]=useState(0);
   const[diary,setDiary]=useState([]);const[showDiaryForm,setShowDiaryForm]=useState(false);const[dGame,setDGame]=useState("");const[dNote,setDNote]=useState("");const[dDate,setDDate]=useState(new Date().toISOString().slice(0,10));const[dRating,setDRating]=useState(0);const[dHours,setDHours]=useState("");
   const[dResults,setDResults]=useState([]);const[dSelGame,setDSelGame]=useState(null);
+  const[bannerPreview,setBannerPreview]=useState(null);const[bannerFile,setBannerFile]=useState(null);const[bannerSaving,setBannerSaving]=useState(false);
   const isSelf=me?.id===viewId;const bannerRef=useRef();
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name});await sendNotif(viewId,me.id,"follow",`${me.user_metadata?.display_name||"Someone"} followed you`)}};
@@ -521,18 +522,23 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const submitDiary=async()=>{if(!dSelGame||!me)return;await addDiary(me.id,{game_id:dSelGame.id,game_title:dSelGame.t,game_img:dSelGame.img,played_on:dDate,note:dNote,rating:dRating||null,hours_played:parseFloat(dHours)||0});
     await postAct(me.id,"logged",{id:dSelGame.id,title:dSelGame.t,img:dSelGame.img,rating:dRating||null});setDiary(await loadDiary(viewId));setShowDiaryForm(false);setDGame("");setDNote("");setDRating(0);setDHours("");setDSelGame(null)};
   const rmDiary=async id=>{await deleteDiary(id);setDiary(diary.filter(d=>d.id!==id))};
-  const handleBanner=async e=>{const f=e.target.files?.[0];if(!f)return;
-    try{await upBanner(me.id,f);const newP=await lp(me.id);setP(newP);onBanner?.()}catch(er){alert("Banner upload failed: "+(er?.message||er))}};
+  const handleBannerSelect=e=>{const f=e.target.files?.[0];if(!f)return;setBannerFile(f);setBannerPreview(URL.createObjectURL(f))};
+  const saveBanner=async()=>{if(!bannerFile||!me)return;setBannerSaving(true);try{await upBanner(me.id,bannerFile);const newP=await lp(me.id);setP(newP);onBanner?.()}catch(er){alert("Banner upload failed: "+(er?.message||er))}setBannerSaving(false);setBannerPreview(null);setBannerFile(null)};
+  const cancelBanner=()=>{setBannerPreview(null);setBannerFile(null)};
   const shareUrl=`https://gameboxed.vercel.app/?user=${viewId}`;
   if(ld)return<Loader/>;
   const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
 
   return<div style={{animation:"fadeIn .15s"}}>
-    {/* Header — custom banner */}
+    {/* Header — custom banner with preview */}
     <div style={{position:"relative",marginBottom:m?-30:-40}}>
-      <div style={{height:m?100:150,borderRadius:20,background:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden"}}/>
-      {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBanner} style={{display:"none"}}/>
-        <button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",top:m?8:10,right:m?8:10,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:10}}>📷 Banner</button></>}
+      <div style={{height:m?100:150,borderRadius:20,background:bannerPreview?`url(${bannerPreview}) center/cover`:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden",transition:"background .3s"}}/>
+      {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBannerSelect} style={{display:"none"}}/>
+        {bannerPreview?<div style={{position:"absolute",top:m?8:10,right:m?8:10,display:"flex",gap:6,zIndex:10}}>
+          <button onClick={saveBanner} disabled={bannerSaving} style={{padding:m?"8px 16px":"6px 14px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:m?12:11,fontWeight:800,cursor:"pointer"}}>{bannerSaving?"Saving...":"Save"}</button>
+          <button onClick={cancelBanner} style={{padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer"}}>Cancel</button></div>
+        :<button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",top:m?8:10,right:m?8:10,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:10}}>📷 Banner</button>}
+      </>}
     </div>
     <div style={{display:"flex",alignItems:m?"center":"flex-start",gap:m?14:20,marginBottom:16,flexDirection:m?"column":"row",position:"relative",padding:m?"0 12px":"0 20px"}}>
       <Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/>
@@ -705,7 +711,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 
 /* ═══ MAIN ═══ */
 export default function App(){
-  const m=useM();const[pg,setPg]=useState("home");const[sel,setSel]=useState(null);const[q,setQ]=useState("");const[qO,setQO]=useState(false);
+  const m=useM();const[pg,setPgRaw]=useState("home");const[sel,setSel]=useState(null);const[q,setQ]=useState("");const[qO,setQO]=useState(false);
   const[ud,setUd]=useState({});const[user,setUser]=useState(null);const[prof,setProf]=useState(null);const[avV,setAvV]=useState(Date.now());const[fc,setFc]=useState({followers:0,following:0});
   const[sa,setSa]=useState(false);const[ep,setEp]=useState(false);const[viewUID,setViewUID]=useState(null);const[flM,setFlM]=useState(null);const[steamModal,setSteamModal]=useState(false);
   const[notifs,setNotifs]=useState([]);const[nCount,setNCount]=useState(0);const[showNotifs,setShowNotifs]=useState(false);
@@ -713,10 +719,20 @@ export default function App(){
   const[sr,setSr]=useState([]);const[pSr,setPSr]=useState([]);const[lSr,setLSr]=useState([]);
   const[ld,setLd]=useState(true);const[sng,setSng]=useState(false);const[lf,setLf]=useState("all");const[sT,setST]=useState("games");
   const[myL,setMyL]=useState([]);const[nLN,setNLN]=useState("");const[feed,setFeed]=useState([]);const[rRev,setRRev]=useState([]);const[news,setNews]=useState([]);
-  const stt=useRef(null);
+  const stt=useRef(null);const skipPush=useRef(false);
+
+  // Browser history — wrap setPg to push state
+  const setPg=(p)=>{setPgRaw(p);if(!skipPush.current){window.history.pushState({pg:p,viewUID:null},"","")}skipPush.current=false};
+  const goUser=(id)=>{setViewUID(id);setPgRaw("viewuser");window.history.pushState({pg:"viewuser",viewUID:id},"","")};
+
+  // Handle browser back button
+  useEffect(()=>{
+    window.history.replaceState({pg:"home",viewUID:null},"","");
+    const onPop=(e)=>{const s=e.state;skipPush.current=true;if(s){setPgRaw(s.pg||"home");setViewUID(s.viewUID||null);setSel(null);setShowNotifs(false)}else{setPgRaw("home");setViewUID(null);setSel(null)}};
+    window.addEventListener("popstate",onPop);return()=>window.removeEventListener("popstate",onPop)},[]);
+
   const rf=()=>{if(user){loadFeed(user.id).then(setFeed);loadRR(user.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}};
   const reloadProf=useCallback(async()=>{if(!user)return;const p=await lp(user.id);setProf(p);setAvV(Date.now());getFC(user.id).then(setFc)},[user]);
-  const goUser=(id)=>{setViewUID(id);setPg("viewuser")};
 
   useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc);loadNotifs(u.id).then(setNotifs);unreadCount(u.id).then(setNCount);loadRR(u.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}});loadNews().then(setNews);
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc)}else{setUd({});setProf(null)}});return()=>subscription.unsubscribe()},[]);
