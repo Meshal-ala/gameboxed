@@ -961,39 +961,81 @@ export default function App(){
         </div>)
         :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
 
-      {/* EXPLORE — Filtered Browse */}
+      {/* EXPLORE — Creative Game Discovery */}
       {pg==="explore"&&<div style={{animation:"fadeIn .15s"}}>
-        <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Explore</h2>
-        <div style={{display:m?"block":"flex",gap:20}}>
-          {/* Filters sidebar */}
-          <div style={{width:m?"100%":200,flexShrink:0,marginBottom:m?16:0}}>
-            {/* Sort */}
-            <div style={{marginBottom:14}}><div style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",marginBottom:6}}>SORT BY</div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{SORTS.map(s=>
-                <button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,fGenre,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:fSort===s.v?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div></div>
-            {/* Genres */}
-            <div style={{marginBottom:14}}><div style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",marginBottom:6}}>GENRE</div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                <button onClick={()=>{setFGenre(null);setExpPage(1);loadExplore(1,null,fPlat,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:!fGenre?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:!fGenre?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>All</button>
-                {GENRES.map(g=>
-                  <button key={g.id} onClick={()=>{setFGenre(g.id);setExpPage(1);loadExplore(1,g.id,fPlat,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fGenre===g.id?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:fGenre===g.id?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{g.n}</button>)}</div></div>
-            {/* Platforms */}
-            <div style={{marginBottom:14}}><div style={{fontSize:10,color:"rgba(255,255,255,.3)",fontWeight:700,letterSpacing:".1em",marginBottom:6}}>PLATFORM</div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                <button onClick={()=>{setFPlat(null);setExpPage(1);loadExplore(1,fGenre,null,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:!fPlat?"rgba(103,232,249,.15)":"rgba(255,255,255,.03)",color:!fPlat?"#67e8f9":"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>All</button>
-                {PLATS.map(p=>
-                  <button key={p.id} onClick={()=>{setFPlat(p.id);setExpPage(1);loadExplore(1,fGenre,p.id,fSort)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":"rgba(255,255,255,.03)",color:fPlat===p.id?p.c:"rgba(255,255,255,.3)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{p.n}</button>)}</div></div>
-          </div>
-          {/* Game grid */}
+        {/* Hero: featured random game */}
+        {!fGenre&&!fPlat&&expGames[0]&&<div onClick={()=>setSel(expGames[0])} style={{position:"relative",height:m?180:260,borderRadius:24,overflow:"hidden",marginBottom:24,cursor:"pointer"}}>
+          <img src={expGames[0].img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.95) 0%,rgba(15,12,25,.3) 50%,transparent 100%)"}}/>
+          <div style={{position:"absolute",top:m?12:18,left:m?14:22}}><span style={{padding:"4px 12px",borderRadius:20,background:"linear-gradient(135deg,#67e8f9,#818cf8)",fontSize:10,fontWeight:800,color:"#0f0c19"}}>DISCOVER</span></div>
+          <div style={{position:"absolute",bottom:m?14:24,left:m?14:22,right:m?14:22}}>
+            <h2 style={{fontFamily:"'Outfit'",fontSize:m?22:34,fontWeight:900,margin:0,lineHeight:1.1}}>{expGames[0].t}</h2>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
+              <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{expGames[0].y}</span>
+              {expGames[0].genre&&<span style={{color:"rgba(255,255,255,.25)",fontSize:12}}>· {expGames[0].genre}</span>}
+              {expGames[0].r&&<span style={{color:"#fde68a",fontSize:12,fontWeight:800}}>★ {expGames[0].r}</span>}
+              {expGames[0].pf?.map((p,i)=><span key={i} style={{padding:"2px 8px",borderRadius:6,background:"rgba(255,255,255,.08)",fontSize:9,fontWeight:800,color:p.c}}>{p.n}</span>)}
+            </div></div></div>}
+
+        {/* Genre Quick-Browse Cards */}
+        {!fGenre&&!fPlat&&<div style={{marginBottom:24}}>
+          <div className="sec-title">BROWSE BY GENRE</div>
+          <div className="hs" style={{display:"flex",gap:m?8:10,overflowX:"auto",paddingBottom:8}}>
+            {GENRES.map((g,i)=>{const emojis={"Action":"⚔️","RPG":"🧙","Adventure":"🗺️","Indie":"🎨","Shooter":"🔫","Strategy":"♟️","Racing":"🏎️","Puzzle":"🧩","Simulation":"🏗️","Arcade":"👾","Platformer":"🍄","Sports":"⚽","Fighting":"🥊","MMO":"🌍"};
+              const colors=["#67e8f9","#818cf8","#c4b5fd","#6ee7b7","#fde68a","#fda4af","#67e8f9","#818cf8","#c4b5fd","#6ee7b7","#fde68a","#fda4af","#67e8f9","#818cf8"];
+              return<div key={g.id} onClick={()=>{setFGenre(g.id);setExpPage(1);loadExplore(1,g.id,fPlat,fSort)}}
+                style={{minWidth:m?100:120,padding:m?"14px 12px":"18px 16px",borderRadius:16,background:`linear-gradient(135deg,${colors[i]}08,${colors[i]}15)`,border:`1px solid ${colors[i]}15`,cursor:"pointer",textAlign:"center",flexShrink:0,transition:"all .15s"}}
+                onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.borderColor=colors[i]+"40"}}
+                onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=colors[i]+"15"}}>
+                <div style={{fontSize:m?24:28,marginBottom:4}}>{emojis[g.n]||"🎮"}</div>
+                <div style={{fontSize:m?11:12,fontWeight:700,color:colors[i]}}>{g.n}</div>
+              </div>})}</div></div>}
+
+        {/* Platform Quick-Browse */}
+        {!fGenre&&!fPlat&&<div style={{marginBottom:24}}>
+          <div className="sec-title">BROWSE BY PLATFORM</div>
+          <div style={{display:"flex",gap:m?8:10,flexWrap:"wrap"}}>
+            {PLATS.map(p=><div key={p.id} onClick={()=>{setFPlat(p.id);setExpPage(1);loadExplore(1,fGenre,p.id,fSort)}}
+              style={{padding:m?"12px 20px":"14px 28px",borderRadius:14,background:p.c+"10",border:`1px solid ${p.c}20`,cursor:"pointer",transition:"all .15s"}}
+              onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.borderColor=p.c+"50"}}
+              onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=p.c+"20"}}>
+              <div style={{fontSize:m?13:14,fontWeight:800,color:p.c}}>{p.n}</div></div>)}</div></div>}
+
+        {/* Active Filters Bar */}
+        {(fGenre||fPlat)&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+          <button onClick={()=>{setFGenre(null);setFPlat(null);setExpPage(1);loadExplore(1,null,null,fSort)}} style={{padding:"6px 14px",borderRadius:10,border:"none",background:"rgba(255,255,255,.04)",color:"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>← All Games</button>
+          {fGenre&&<span style={{padding:"5px 12px",borderRadius:20,background:"rgba(103,232,249,.12)",color:"#67e8f9",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
+            {GENRES.find(g=>g.id===fGenre)?.n} <span onClick={(e)=>{e.stopPropagation();setFGenre(null);setExpPage(1);loadExplore(1,null,fPlat,fSort)}} style={{cursor:"pointer",opacity:.5}}>✕</span></span>}
+          {fPlat&&<span style={{padding:"5px 12px",borderRadius:20,background:"rgba(129,140,248,.12)",color:"#818cf8",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
+            {PLATS.find(p=>p.id===fPlat)?.n} <span onClick={(e)=>{e.stopPropagation();setFPlat(null);setExpPage(1);loadExplore(1,fGenre,null,fSort)}} style={{cursor:"pointer",opacity:.5}}>✕</span></span>}
+          <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+            {SORTS.map(s=><button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,fGenre,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.12)":"rgba(255,255,255,.03)",color:fSort===s.v?"#67e8f9":"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div>
+        </div>}
+
+        {/* When filters active: show genre/platform filter chips for switching */}
+        {(fGenre||fPlat)&&<div style={{display:"flex",gap:16,marginBottom:16}}>
+          {/* Genre chips */}
           <div style={{flex:1}}>
-            {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>Select filters or change sort to browse games</p>}
-            <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(140px,1fr))",gap:m?8:12}}>
-              {expGames.map((g,i)=><GC key={g.id} game={g} delay={Math.min(i,20)*8} onClick={setSel} mobile={m} ud={ud}/>)}</div>
-            {expLd&&<Loader/>}
-            {expGames.length>0&&!expLd&&<div style={{textAlign:"center",marginTop:20}}>
-              <button onClick={()=>{const np=expPage+1;setExpPage(np);loadExplore(np)}} style={{padding:"12px 32px",borderRadius:14,...glass,border:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.4)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Load More</button></div>}
+            <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4}}>
+              {GENRES.map(g=><button key={g.id} onClick={()=>{setFGenre(fGenre===g.id?null:g.id);setExpPage(1);loadExplore(1,fGenre===g.id?null:g.id,fPlat,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fGenre===g.id?"rgba(103,232,249,.15)":"rgba(255,255,255,.02)",color:fGenre===g.id?"#67e8f9":"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{g.n}</button>)}</div>
+            <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4,marginTop:4}}>
+              {PLATS.map(p=><button key={p.id} onClick={()=>{setFPlat(fPlat===p.id?null:p.id);setExpPage(1);loadExplore(1,fGenre,fPlat===p.id?null:p.id,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":"rgba(255,255,255,.02)",color:fPlat===p.id?p.c:"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{p.n}</button>)}</div>
           </div>
-        </div></div>}
+        </div>}
+
+        {/* Results count */}
+        {(fGenre||fPlat)&&expGames.length>0&&<div style={{fontSize:11,color:"rgba(255,255,255,.2)",marginBottom:12}}>{expGames.length}+ games found</div>}
+
+        {/* Game Grid */}
+        {expGames.length>0&&<div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(150px,1fr))",gap:m?8:14}}>
+          {expGames.slice(fGenre||fPlat?0:1).map((g,i)=><GC key={g.id} game={g} delay={Math.min(i,16)*10} onClick={setSel} mobile={m} ud={ud}/>)}</div>}
+        {expLd&&<Loader/>}
+        {expGames.length>0&&!expLd&&<div style={{textAlign:"center",marginTop:28,marginBottom:20}}>
+          <button onClick={()=>{const np=expPage+1;setExpPage(np);loadExplore(np)}} style={{padding:"14px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,rgba(103,232,249,.1),rgba(129,140,248,.1))",color:"#67e8f9",fontSize:14,fontWeight:700,cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="linear-gradient(135deg,rgba(103,232,249,.2),rgba(129,140,248,.2))"}
+            onMouseLeave={e=>e.currentTarget.style.background="linear-gradient(135deg,rgba(103,232,249,.1),rgba(129,140,248,.1))"}>Load More Games</button></div>}
+        {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games found for this filter</p>}
+      </div>}
 
       {/* LIBRARY */}
       {pg==="library"&&user&&<div style={{animation:"fadeIn .15s"}}>
