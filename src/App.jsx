@@ -37,7 +37,16 @@ const loadGR=async gid=>{const{data}=await supabase.from("reviews").select("*").
   if(!data?.length)return[];const uids=[...new Set(data.map(r=>r.user_id))];const{data:profs}=await supabase.from("profiles").select("id,display_name,username,avatar_url").in("id",uids);
   const pm={};(profs||[]).forEach(p=>pm[p.id]=p);return data.map(r=>({...r,profiles:pm[r.user_id]||null}))};
 const postRev=async(uid,g,r,t)=>{await supabase.from("reviews").insert({user_id:uid,game_id:g.id,game_title:g.t||g.title,game_img:g.img,rating:r,text:t});await postAct(uid,"reviewed",{id:g.id,title:g.t||g.title,img:g.img})};
-const loadRR=async()=>{const{data}=await supabase.from("reviews").select("*").order("created_at",{ascending:false}).limit(10);
+const loadRR=async(uid)=>{
+  let data;
+  if(uid){
+    // Only reviews from people I follow + myself
+    const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",uid);
+    const ids=[uid,...(fo||[]).map(f=>f.following_id)];
+    const{data:d}=await supabase.from("reviews").select("*").in("user_id",ids).order("created_at",{ascending:false}).limit(10);data=d;
+  }else{
+    const{data:d}=await supabase.from("reviews").select("*").order("created_at",{ascending:false}).limit(10);data=d;
+  }
   if(!data?.length)return[];const uids=[...new Set(data.map(r=>r.user_id))];const{data:profs}=await supabase.from("profiles").select("id,display_name,username,avatar_url").in("id",uids);
   const pm={};(profs||[]).forEach(p=>pm[p.id]=p);return data.map(r=>({...r,profiles:pm[r.user_id]||null}))};
 const followU=async(a,b)=>await supabase.from("follows").insert({follower_id:a,following_id:b});
@@ -83,7 +92,10 @@ const markRead=async uid=>supabase.from("notifications").update({read:true}).eq(
 const sendNotif=async(toUid,fromUid,type,msg,extra)=>supabase.from("notifications").insert({user_id:toUid,from_user_id:fromUid,type,message:msg,game_title:extra?.game,review_id:extra?.revId});
 
 /* Banner */
-const upBanner=async(uid,file)=>{const p=`${uid}/banner.${file.name.split(".").pop()}`;try{await supabase.storage.from("avatars").remove([p])}catch{};const{error}=await supabase.storage.from("avatars").upload(p,file,{cacheControl:"no-cache",upsert:true});if(error)throw error;await supabase.from("profiles").update({banner_url:p}).eq("id",uid);return p};
+const upBanner=async(uid,file)=>{const ext=file.name.split(".").pop()||"jpg";const p=`${uid}/banner_${Date.now()}.${ext}`;
+  const{error}=await supabase.storage.from("avatars").upload(p,file,{cacheControl:"no-cache",upsert:true});
+  if(error)throw error;
+  await supabase.from("profiles").update({banner_url:p}).eq("id",uid);return p};
 const bannerUrl=(url,v)=>url?`${SU}/storage/v1/object/public/avatars/${url}?v=${v||1}`:null;
 
 /* FIXED Avatar — single path, always overwrite */
@@ -509,7 +521,8 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const submitDiary=async()=>{if(!dSelGame||!me)return;await addDiary(me.id,{game_id:dSelGame.id,game_title:dSelGame.t,game_img:dSelGame.img,played_on:dDate,note:dNote,rating:dRating||null,hours_played:parseFloat(dHours)||0});
     await postAct(me.id,"logged",{id:dSelGame.id,title:dSelGame.t,img:dSelGame.img,rating:dRating||null});setDiary(await loadDiary(viewId));setShowDiaryForm(false);setDGame("");setDNote("");setDRating(0);setDHours("");setDSelGame(null)};
   const rmDiary=async id=>{await deleteDiary(id);setDiary(diary.filter(d=>d.id!==id))};
-  const handleBanner=async e=>{const f=e.target.files[0];if(!f)return;try{await upBanner(me.id,f);const newP=await lp(me.id);setP(newP);onBanner?.()}catch(er){alert("Banner upload failed: "+er.message)}};
+  const handleBanner=async e=>{const f=e.target.files?.[0];if(!f)return;
+    try{await upBanner(me.id,f);const newP=await lp(me.id);setP(newP);onBanner?.()}catch(er){alert("Banner upload failed: "+(er?.message||er))}};
   const shareUrl=`https://gameboxed.vercel.app/?user=${viewId}`;
   if(ld)return<Loader/>;
   const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
@@ -519,7 +532,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
     <div style={{position:"relative",marginBottom:m?-30:-40}}>
       <div style={{height:m?100:150,borderRadius:20,background:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden"}}/>
       {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBanner} style={{display:"none"}}/>
-        <button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",bottom:m?10:12,right:m?10:12,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.6)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:5}}>📷 Banner</button></>}
+        <button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",top:m?8:10,right:m?8:10,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:10}}>📷 Banner</button></>}
     </div>
     <div style={{display:"flex",alignItems:m?"center":"flex-start",gap:m?14:20,marginBottom:16,flexDirection:m?"column":"row",position:"relative",padding:m?"0 12px":"0 20px"}}>
       <Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/>
@@ -701,11 +714,11 @@ export default function App(){
   const[ld,setLd]=useState(true);const[sng,setSng]=useState(false);const[lf,setLf]=useState("all");const[sT,setST]=useState("games");
   const[myL,setMyL]=useState([]);const[nLN,setNLN]=useState("");const[feed,setFeed]=useState([]);const[rRev,setRRev]=useState([]);const[news,setNews]=useState([]);
   const stt=useRef(null);
-  const rf=()=>{if(user)loadFeed(user.id).then(setFeed);else loadAllFeed().then(setFeed);loadRR().then(setRRev)};
+  const rf=()=>{if(user){loadFeed(user.id).then(setFeed);loadRR(user.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}};
   const reloadProf=useCallback(async()=>{if(!user)return;const p=await lp(user.id);setProf(p);setAvV(Date.now());getFC(user.id).then(setFc)},[user]);
   const goUser=(id)=>{setViewUID(id);setPg("viewuser")};
 
-  useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc);loadNotifs(u.id).then(setNotifs);unreadCount(u.id).then(setNCount)}else loadAllFeed().then(setFeed)});loadRR().then(setRRev);loadNews().then(setNews);
+  useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc);loadNotifs(u.id).then(setNotifs);unreadCount(u.id).then(setNCount);loadRR(u.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}});loadNews().then(setNews);
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{const u=session?.user||null;setUser(u);if(u){lcl(u.id).then(setUd);lp(u.id).then(setProf);loadLists(u.id).then(setMyL);loadFeed(u.id).then(setFeed);getFC(u.id).then(setFc)}else{setUd({});setProf(null)}});return()=>subscription.unsubscribe()},[]);
 
   useEffect(()=>{setLd(true);const td=new Date().toISOString().slice(0,10),ly=new Date(Date.now()-365*864e5).toISOString().slice(0,10),ny=new Date(Date.now()+365*864e5).toISOString().slice(0,10);
@@ -799,16 +812,24 @@ export default function App(){
             <div style={{fontSize:15,fontWeight:700}}>📝 {l.title}</div><div style={{fontSize:11,color:"rgba(255,255,255,.25)",marginTop:4}}>{l.game_ids?.length||0} games · {l.profiles?.display_name}</div></div>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No lists</p>)}
         </>}</div>}
 
-      {/* HOME — 3 column: news | games | activity */}
+      {/* HOME */}
       {pg==="home"&&<div style={{animation:"fadeIn .2s"}}>
-        {!user&&!ld&&<div style={{textAlign:"center",padding:m?"24px 0":"40px 0 36px",marginBottom:m?16:24}}>
-          <h1 style={{fontFamily:"'Outfit'",fontSize:m?28:52,fontWeight:900,lineHeight:1.05,letterSpacing:"-.02em"}}>Track your<br/><span style={{background:"linear-gradient(135deg,#67e8f9,#818cf8,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>gaming journey</span></h1>
-          <p style={{color:"rgba(255,255,255,.3)",fontSize:m?14:16,marginTop:12,maxWidth:400,margin:"12px auto 20px"}}>Rate, review, and share. Build your gaming identity.</p>
-          <button onClick={()=>setSa(true)} style={{padding:"14px 36px",borderRadius:16,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 8px 32px rgba(103,232,249,.2)"}}>Get Started — Free</button></div>}
+        {!user&&!ld&&<div style={{textAlign:"center",padding:m?"30px 16px":"60px 0 50px",marginBottom:m?16:30,position:"relative"}}>
+          <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 30%,rgba(103,232,249,.08) 0%,transparent 60%)",pointerEvents:"none"}}/>
+          <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:m?16:24}}>
+            <svg width={m?40:56} height={m?40:56} viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/></svg></div>
+          <h1 style={{fontFamily:"'Outfit'",fontSize:m?32:56,fontWeight:900,lineHeight:1.05,letterSpacing:"-.03em"}}>Your gaming<br/><span style={{background:"linear-gradient(135deg,#67e8f9,#818cf8,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>diary awaits</span></h1>
+          <p style={{color:"rgba(255,255,255,.35)",fontSize:m?14:17,marginTop:14,maxWidth:440,margin:"14px auto 28px",lineHeight:1.6}}>Track every game. Rate, review, and build your gaming identity. Connect with friends and discover what to play next.</p>
+          <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>setSa(true)} style={{padding:"16px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 8px 32px rgba(103,232,249,.2)"}}>Get Started — Free</button>
+            <button onClick={()=>setPg("explore")} style={{padding:"16px 32px",borderRadius:16,...glass,border:"1px solid rgba(255,255,255,.08)",color:"rgba(255,255,255,.5)",fontSize:16,fontWeight:700,cursor:"pointer"}}>Explore</button></div>
+          <div style={{display:"flex",gap:20,justifyContent:"center",marginTop:28}}>
+            {[{n:"500K+",l:"Games"},{n:"Free",l:"Forever"},{n:"Steam",l:"Import"}].map((s,i)=>
+              <div key={i}><div style={{fontSize:m?18:22,fontWeight:900,color:"#67e8f9"}}>{s.n}</div><div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{s.l}</div></div>)}</div></div>}
 
-        {ld?<Loader/>:<div style={{display:m?"block":"grid",gridTemplateColumns:"220px 1fr 260px",gap:20}}>
-          {/* LEFT: News */}
-          {!m&&<aside>
+        {ld?<Loader/>:<div style={{display:m?"block":"grid",gridTemplateColumns:user?"1fr 280px":"220px 1fr 260px",gap:24}}>
+          {/* LEFT: News (only when not logged in) */}
+          {!m&&!user&&<aside>
             <div className="sec-title">📰 GAME NEWS</div>
             {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
               onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
@@ -833,7 +854,7 @@ export default function App(){
             <div className="sec-title">RPG</div>{secGrid(rpg,5)}<div style={{height:20}}/>
             <div className="sec-title">INDIE</div>{secGrid(indie,5)}
 
-            {/* Mobile news */}
+            {/* Mobile: news + activity */}
             {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME NEWS</div>
               <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
                 {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
@@ -843,9 +864,9 @@ export default function App(){
                     <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
           </div>
 
-          {/* RIGHT: Activity + Reviews */}
+          {/* RIGHT: Following Activity + Reviews (only when logged in) */}
           {!m&&<aside>
-            {rRev.length>0&&<div style={{marginBottom:24}}><div className="sec-title">💬 REVIEWS</div>
+            {user&&rRev.length>0&&<div style={{marginBottom:24}}><div className="sec-title">💬 FROM YOUR FEED</div>
               {rRev.slice(0,5).map(r=><div key={r.id} style={{...glass,padding:"12px",borderRadius:14,marginBottom:8}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
                   <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={20} onClick={()=>goUser(r.user_id)} v={avV}/>
@@ -853,18 +874,26 @@ export default function App(){
                   {r.rating>0&&<span style={{fontSize:9,color:"#fde68a"}}>★{r.rating}</span>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div>
                 <div style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3}}>{r.game_title}</div>
                 <p style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
-            <div className="sec-title">⚡ ACTIVITY</div>
-            {feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
-              <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={18} onClick={()=>goUser(a.user_id)} v={avV}/>
-              <div style={{flex:1,minWidth:0}}>
-                <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
-                <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
-                <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
-                {a.game_title&&<span style={{color:"#67e8f9"}}>{a.game_title}</span>}
-                {a.action==="followed"&&a.target_user_name&&<span style={{color:"#67e8f9"}}>{a.target_user_name}</span>}
-                {a.extra_text&&<span style={{color:"rgba(255,255,255,.12)"}}> "{a.extra_text}"</span>}
-              </div>
-              <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)}
+            {user&&<><div className="sec-title">⚡ FOLLOWING</div>
+              {feed.length?feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
+                <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={18} onClick={()=>goUser(a.user_id)} v={avV}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
+                  <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
+                  <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
+                  {a.game_title&&<span style={{color:"#67e8f9"}}>{a.game_title}</span>}
+                  {a.action==="followed"&&a.target_user_name&&<span style={{color:"#67e8f9"}}>{a.target_user_name}</span>}
+                </div>
+                <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
+              :<p style={{textAlign:"center",padding:20,color:"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
+            {!user&&<><div className="sec-title">📰 GAME NEWS</div>
+              {news.slice(0,5).map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
+                onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
+                {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}}/>}
+                <div style={{padding:"8px 10px"}}>
+                  <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
+                  <div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:2}}>{n.date}</div>
+                </div></div>)}</>}
           </aside>}
         </div>}</div>}
 
