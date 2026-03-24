@@ -725,7 +725,7 @@ export default function App(){
   const[ld,setLd]=useState(true);const[sng,setSng]=useState(false);const[lf,setLf]=useState("all");const[sT,setST]=useState("games");
   const[myL,setMyL]=useState([]);const[nLN,setNLN]=useState("");const[feed,setFeed]=useState([]);const[rRev,setRRev]=useState([]);const[news,setNews]=useState([]);
   const[expGames,setExpGames]=useState([]);const[expLd,setExpLd]=useState(false);const[expPage,setExpPage]=useState(1);
-  const[fGenre,setFGenre]=useState(null);const[fPlat,setFPlat]=useState(null);const[fSort,setFSort]=useState("-rating");
+  const[fPlat,setFPlat]=useState(null);const[fSort,setFSort]=useState("-rating");
   const stt=useRef(null);const skipPush=useRef(false);
 
   // Browser history — wrap setPg to push state
@@ -754,13 +754,44 @@ export default function App(){
     stt.current=setTimeout(async()=>{const[g,p,l]=await Promise.all([sga(q),searchPeople(q),searchLists(q)]);setSr(g.map(nm));setPSr(p);setLSr(l);setSng(false)},400)},[q]);
 
   const all=[...pop,...best,...fresh,...soon,...actG,...rpg,...indie,...sr,...expGames];
-  const GENRES=[{id:4,n:"Action"},{id:5,n:"RPG"},{id:3,n:"Adventure"},{id:51,n:"Indie"},{id:2,n:"Shooter"},{id:10,n:"Strategy"},{id:1,n:"Racing"},{id:7,n:"Puzzle"},{id:14,n:"Simulation"},{id:11,n:"Arcade"},{id:83,n:"Platformer"},{id:15,n:"Sports"},{id:6,n:"Fighting"},{id:59,n:"MMO"}];
+  /* Steam-style categories — using RAWG genre IDs + tag IDs */
+  const CATS=[
+    {id:"top",l:"Top Sellers",ico:"🏆",c:"#fde68a",q:"&ordering=-added&dates=2024-01-01,2026-12-31"},
+    {id:"new",l:"New Releases",ico:"🆕",c:"#6ee7b7",q:"&ordering=-released&dates=2025-01-01,2026-12-31"},
+    {id:"upcoming",l:"Coming Soon",ico:"📅",c:"#67e8f9",q:"&ordering=-added&dates=2026-04-01,2027-12-31"},
+    {id:"free",l:"Free to Play",ico:"🎁",c:"#c4b5fd",q:"&tags=free-to-play"},
+    {id:"specials",l:"On Sale",ico:"💰",c:"#fda4af",q:"&ordering=-metacritic&metacritic=80,100"},
+    {id:"action",l:"Action",ico:"⚔️",c:"#f87171",q:"&genres=action"},
+    {id:"adventure",l:"Adventure",ico:"🗺️",c:"#67e8f9",q:"&genres=adventure"},
+    {id:"rpg",l:"RPG",ico:"🧙",c:"#818cf8",q:"&genres=role-playing-games-rpg"},
+    {id:"strategy",l:"Strategy",ico:"♟️",c:"#6ee7b7",q:"&genres=strategy"},
+    {id:"simulation",l:"Simulation",ico:"🏗️",c:"#fde68a",q:"&genres=simulation"},
+    {id:"sports",l:"Sports & Racing",ico:"🏎️",c:"#67e8f9",q:"&genres=sports,racing"},
+    {id:"indie",l:"Indie",ico:"🎨",c:"#c4b5fd",q:"&genres=indie&ordering=-rating"},
+    {id:"casual",l:"Casual",ico:"🧩",c:"#fda4af",q:"&genres=casual"},
+    {id:"shooter",l:"Shooter",ico:"🔫",c:"#f87171",q:"&genres=shooter"},
+    {id:"horror",l:"Horror",ico:"👻",c:"#fda4af",q:"&tags=horror"},
+    {id:"openworld",l:"Open World",ico:"🌍",c:"#6ee7b7",q:"&tags=open-world"},
+    {id:"survival",l:"Survival",ico:"🏕️",c:"#fde68a",q:"&tags=survival"},
+    {id:"puzzle",l:"Puzzle",ico:"🧩",c:"#818cf8",q:"&genres=puzzle"},
+    {id:"platformer",l:"Platformer",ico:"🍄",c:"#fda4af",q:"&genres=platformer"},
+    {id:"fighting",l:"Fighting",ico:"🥊",c:"#f87171",q:"&genres=fighting"},
+    {id:"mmo",l:"MMO",ico:"🌐",c:"#67e8f9",q:"&genres=massively-multiplayer"},
+    {id:"sandbox",l:"Sandbox",ico:"📦",c:"#c4b5fd",q:"&tags=sandbox"},
+    {id:"stealth",l:"Stealth",ico:"🥷",c:"#818cf8",q:"&tags=stealth"},
+    {id:"roguelike",l:"Roguelike",ico:"🎲",c:"#fde68a",q:"&tags=roguelike"},
+    {id:"coop",l:"Co-op",ico:"👫",c:"#6ee7b7",q:"&tags=co-op"},
+    {id:"vr",l:"VR Games",ico:"🥽",c:"#67e8f9",q:"&tags=vr"},
+  ];
   const PLATS=[{id:4,n:"PC",c:"#67e8f9"},{id:187,n:"PS5",c:"#818cf8"},{id:18,n:"PS4",c:"#818cf8"},{id:1,n:"Xbox One",c:"#6ee7b7"},{id:186,n:"Xbox S|X",c:"#6ee7b7"},{id:7,n:"Switch",c:"#fda4af"}];
   const SORTS=[{v:"-rating",l:"Top Rated"},{v:"-released",l:"Newest"},{v:"-added",l:"Most Popular"},{v:"-metacritic",l:"Metacritic"},{v:"name",l:"A-Z"}];
-  const loadExplore=useCallback(async(page=1,genre=fGenre,plat=fPlat,sort=fSort)=>{
-    setExpLd(true);let p=`&ordering=${sort}&page=${page}&page_size=40`;
-    if(genre)p+=`&genres=${genre}`;if(plat)p+=`&platforms=${plat}`;
-    const r=await fg(p);setExpGames(prev=>page===1?r.map(nm):[...prev,...r.map(nm)]);setExpLd(false)},[fGenre,fPlat,fSort]);
+  const[expCat,setExpCat]=useState(null);
+  const loadExplore=useCallback(async(page=1,cat=expCat,plat=fPlat,sort=fSort)=>{
+    setExpLd(true);let p=`&page=${page}&page_size=40`;
+    if(cat){const c=CATS.find(x=>x.id===cat);if(c)p+=c.q}
+    if(!cat)p+=`&ordering=${sort}`;
+    if(plat)p+=`&platforms=${plat}`;
+    const r=await fg(p);setExpGames(prev=>page===1?r.map(nm):[...prev,...r.map(nm)]);setExpLd(false)},[expCat,fPlat,fSort]);
   const lib=Object.entries(ud).filter(([_,v])=>v.status).map(([id,v])=>{const f=all.find(g=>g.id===parseInt(id));return f||{id:parseInt(id),t:v.title||"?",img:v.img||"",y:"",genre:"",r:null,pf:[]}});
   const flib=lf==="all"?lib:lib.filter(g=>ud[g.id]?.status===lf);
   const so=async()=>{await supabase.auth.signOut();setUser(null);setUd({});setProf(null);setPg("home")};
@@ -961,80 +992,109 @@ export default function App(){
         </div>)
         :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
 
-      {/* EXPLORE — Creative Game Discovery */}
+      {/* EXPLORE — Steam-style Category Browsing */}
       {pg==="explore"&&<div style={{animation:"fadeIn .15s"}}>
-        {/* Hero: featured random game */}
-        {!fGenre&&!fPlat&&expGames[0]&&<div onClick={()=>setSel(expGames[0])} style={{position:"relative",height:m?180:260,borderRadius:24,overflow:"hidden",marginBottom:24,cursor:"pointer"}}>
-          <img src={expGames[0].img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.95) 0%,rgba(15,12,25,.3) 50%,transparent 100%)"}}/>
-          <div style={{position:"absolute",top:m?12:18,left:m?14:22}}><span style={{padding:"4px 12px",borderRadius:20,background:"linear-gradient(135deg,#67e8f9,#818cf8)",fontSize:10,fontWeight:800,color:"#0f0c19"}}>DISCOVER</span></div>
-          <div style={{position:"absolute",bottom:m?14:24,left:m?14:22,right:m?14:22}}>
-            <h2 style={{fontFamily:"'Outfit'",fontSize:m?22:34,fontWeight:900,margin:0,lineHeight:1.1}}>{expGames[0].t}</h2>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
-              <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{expGames[0].y}</span>
-              {expGames[0].genre&&<span style={{color:"rgba(255,255,255,.25)",fontSize:12}}>· {expGames[0].genre}</span>}
-              {expGames[0].r&&<span style={{color:"#fde68a",fontSize:12,fontWeight:800}}>★ {expGames[0].r}</span>}
-              {expGames[0].pf?.map((p,i)=><span key={i} style={{padding:"2px 8px",borderRadius:6,background:"rgba(255,255,255,.08)",fontSize:9,fontWeight:800,color:p.c}}>{p.n}</span>)}
-            </div></div></div>}
 
-        {/* Genre Quick-Browse Cards */}
-        {!fGenre&&!fPlat&&<div style={{marginBottom:24}}>
-          <div className="sec-title">BROWSE BY GENRE</div>
-          <div className="hs" style={{display:"flex",gap:m?8:10,overflowX:"auto",paddingBottom:8}}>
-            {GENRES.map((g,i)=>{const emojis={"Action":"⚔️","RPG":"🧙","Adventure":"🗺️","Indie":"🎨","Shooter":"🔫","Strategy":"♟️","Racing":"🏎️","Puzzle":"🧩","Simulation":"🏗️","Arcade":"👾","Platformer":"🍄","Sports":"⚽","Fighting":"🥊","MMO":"🌍"};
-              const colors=["#67e8f9","#818cf8","#c4b5fd","#6ee7b7","#fde68a","#fda4af","#67e8f9","#818cf8","#c4b5fd","#6ee7b7","#fde68a","#fda4af","#67e8f9","#818cf8"];
-              return<div key={g.id} onClick={()=>{setFGenre(g.id);setExpPage(1);loadExplore(1,g.id,fPlat,fSort)}}
-                style={{minWidth:m?100:120,padding:m?"14px 12px":"18px 16px",borderRadius:16,background:`linear-gradient(135deg,${colors[i]}08,${colors[i]}15)`,border:`1px solid ${colors[i]}15`,cursor:"pointer",textAlign:"center",flexShrink:0,transition:"all .15s"}}
-                onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.borderColor=colors[i]+"40"}}
-                onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=colors[i]+"15"}}>
-                <div style={{fontSize:m?24:28,marginBottom:4}}>{emojis[g.n]||"🎮"}</div>
-                <div style={{fontSize:m?11:12,fontWeight:700,color:colors[i]}}>{g.n}</div>
-              </div>})}</div></div>}
+        {/* No category selected — Show category grid */}
+        {!expCat&&!fPlat?<>
+          {/* Featured hero */}
+          {expGames[0]&&<div onClick={()=>setSel(expGames[0])} style={{position:"relative",height:m?180:280,borderRadius:24,overflow:"hidden",marginBottom:28,cursor:"pointer"}}>
+            <img src={expGames[0].img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(15,12,25,.3) 0%,rgba(15,12,25,.8) 60%,rgba(15,12,25,.95) 100%)"}}/>
+            <div style={{position:"absolute",top:m?12:20,left:m?14:24}}><span style={{padding:"5px 14px",borderRadius:20,background:"linear-gradient(135deg,#67e8f9,#818cf8)",fontSize:10,fontWeight:800,color:"#0f0c19"}}>FEATURED</span></div>
+            <div style={{position:"absolute",bottom:m?16:28,left:m?14:24,right:m?14:100}}>
+              <h2 style={{fontFamily:"'Outfit'",fontSize:m?24:38,fontWeight:900,margin:0,lineHeight:1.05}}>{expGames[0].t}</h2>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
+                {expGames[0].r&&<span style={{padding:"4px 10px",borderRadius:8,background:"rgba(253,230,138,.12)",color:"#fde68a",fontSize:12,fontWeight:800}}>★ {expGames[0].r}</span>}
+                <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{expGames[0].y}</span>
+                {expGames[0].genre&&<span style={{color:"rgba(255,255,255,.25)",fontSize:12}}>{expGames[0].genre}</span>}
+              </div></div></div>}
 
-        {/* Platform Quick-Browse */}
-        {!fGenre&&!fPlat&&<div style={{marginBottom:24}}>
-          <div className="sec-title">BROWSE BY PLATFORM</div>
-          <div style={{display:"flex",gap:m?8:10,flexWrap:"wrap"}}>
-            {PLATS.map(p=><div key={p.id} onClick={()=>{setFPlat(p.id);setExpPage(1);loadExplore(1,fGenre,p.id,fSort)}}
-              style={{padding:m?"12px 20px":"14px 28px",borderRadius:14,background:p.c+"10",border:`1px solid ${p.c}20`,cursor:"pointer",transition:"all .15s"}}
-              onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.borderColor=p.c+"50"}}
-              onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=p.c+"20"}}>
-              <div style={{fontSize:m?13:14,fontWeight:800,color:p.c}}>{p.n}</div></div>)}</div></div>}
+          {/* Steam-style category sections */}
+          <div className="sec-title" style={{fontSize:m?13:15}}>CATEGORIES</div>
 
-        {/* Active Filters Bar */}
-        {(fGenre||fPlat)&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-          <button onClick={()=>{setFGenre(null);setFPlat(null);setExpPage(1);loadExplore(1,null,null,fSort)}} style={{padding:"6px 14px",borderRadius:10,border:"none",background:"rgba(255,255,255,.04)",color:"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>← All Games</button>
-          {fGenre&&<span style={{padding:"5px 12px",borderRadius:20,background:"rgba(103,232,249,.12)",color:"#67e8f9",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
-            {GENRES.find(g=>g.id===fGenre)?.n} <span onClick={(e)=>{e.stopPropagation();setFGenre(null);setExpPage(1);loadExplore(1,null,fPlat,fSort)}} style={{cursor:"pointer",opacity:.5}}>✕</span></span>}
-          {fPlat&&<span style={{padding:"5px 12px",borderRadius:20,background:"rgba(129,140,248,.12)",color:"#818cf8",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4}}>
-            {PLATS.find(p=>p.id===fPlat)?.n} <span onClick={(e)=>{e.stopPropagation();setFPlat(null);setExpPage(1);loadExplore(1,fGenre,null,fSort)}} style={{cursor:"pointer",opacity:.5}}>✕</span></span>}
-          <div style={{marginLeft:"auto",display:"flex",gap:4}}>
-            {SORTS.map(s=><button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,fGenre,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.12)":"rgba(255,255,255,.03)",color:fSort===s.v?"#67e8f9":"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div>
-        </div>}
+          {/* Top row: Special categories */}
+          <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(5,1fr)",gap:m?8:10,marginBottom:20}}>
+            {CATS.slice(0,5).map(cat=>
+              <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
+                style={{padding:m?"16px 12px":"20px 16px",borderRadius:16,background:`linear-gradient(135deg,${cat.c}06,${cat.c}12)`,border:`1px solid ${cat.c}12`,cursor:"pointer",textAlign:"center",transition:"all .2s"}}
+                onMouseEnter={e=>{if(!m){e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.borderColor=cat.c+"40";e.currentTarget.style.boxShadow=`0 8px 24px ${cat.c}15`}}}
+                onMouseLeave={e=>{if(!m){e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=cat.c+"12";e.currentTarget.style.boxShadow="none"}}}>
+                <div style={{fontSize:m?24:30,marginBottom:4}}>{cat.ico}</div>
+                <div style={{fontSize:m?11:13,fontWeight:700,color:cat.c}}>{cat.l}</div>
+              </div>)}</div>
 
-        {/* When filters active: show genre/platform filter chips for switching */}
-        {(fGenre||fPlat)&&<div style={{display:"flex",gap:16,marginBottom:16}}>
-          {/* Genre chips */}
-          <div style={{flex:1}}>
-            <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4}}>
-              {GENRES.map(g=><button key={g.id} onClick={()=>{setFGenre(fGenre===g.id?null:g.id);setExpPage(1);loadExplore(1,fGenre===g.id?null:g.id,fPlat,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fGenre===g.id?"rgba(103,232,249,.15)":"rgba(255,255,255,.02)",color:fGenre===g.id?"#67e8f9":"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{g.n}</button>)}</div>
-            <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4,marginTop:4}}>
-              {PLATS.map(p=><button key={p.id} onClick={()=>{setFPlat(fPlat===p.id?null:p.id);setExpPage(1);loadExplore(1,fGenre,fPlat===p.id?null:p.id,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":"rgba(255,255,255,.02)",color:fPlat===p.id?p.c:"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{p.n}</button>)}</div>
+          {/* Genre grid */}
+          <div className="sec-title" style={{fontSize:m?13:15}}>GENRES</div>
+          <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(7,1fr)",gap:m?6:8,marginBottom:20}}>
+            {CATS.slice(5,19).map(cat=>
+              <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
+                style={{padding:m?"12px 8px":"14px 10px",borderRadius:12,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer",textAlign:"center",transition:"all .2s"}}
+                onMouseEnter={e=>{if(!m){e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.background=cat.c+"10";e.currentTarget.style.borderColor=cat.c+"30"}}}
+                onMouseLeave={e=>{if(!m){e.currentTarget.style.transform="none";e.currentTarget.style.background="rgba(255,255,255,.02)";e.currentTarget.style.borderColor="rgba(255,255,255,.04)"}}}>
+                <div style={{fontSize:m?18:22}}>{cat.ico}</div>
+                <div style={{fontSize:m?9:10,fontWeight:700,color:"rgba(255,255,255,.5)",marginTop:2}}>{cat.l}</div>
+              </div>)}</div>
+
+          {/* Tags/Special */}
+          <div className="sec-title" style={{fontSize:m?13:15}}>BROWSE BY TAG</div>
+          <div style={{display:"flex",gap:m?6:8,flexWrap:"wrap",marginBottom:24}}>
+            {CATS.slice(19).map(cat=>
+              <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
+                style={{padding:m?"8px 14px":"10px 18px",borderRadius:20,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all .2s"}}
+                onMouseEnter={e=>{if(!m){e.currentTarget.style.background=cat.c+"10";e.currentTarget.style.borderColor=cat.c+"30"}}}
+                onMouseLeave={e=>{if(!m){e.currentTarget.style.background="rgba(255,255,255,.02)";e.currentTarget.style.borderColor="rgba(255,255,255,.04)"}}}>
+                <span style={{fontSize:m?14:16}}>{cat.ico}</span>
+                <span style={{fontSize:m?10:12,fontWeight:700,color:"rgba(255,255,255,.4)"}}>{cat.l}</span>
+              </div>)}</div>
+
+          {/* Platform browse */}
+          <div className="sec-title" style={{fontSize:m?13:15}}>BROWSE BY PLATFORM</div>
+          <div style={{display:"flex",gap:m?8:10,flexWrap:"wrap",marginBottom:24}}>
+            {PLATS.map(p=><div key={p.id} onClick={()=>{setFPlat(p.id);setExpPage(1);loadExplore(1,null,p.id,fSort)}}
+              style={{padding:m?"12px 24px":"16px 32px",borderRadius:16,background:p.c+"08",border:`1px solid ${p.c}15`,cursor:"pointer",transition:"all .2s"}}
+              onMouseEnter={e=>{if(!m){e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.borderColor=p.c+"40";e.currentTarget.style.boxShadow=`0 6px 20px ${p.c}15`}}}
+              onMouseLeave={e=>{if(!m){e.currentTarget.style.transform="none";e.currentTarget.style.borderColor=p.c+"15";e.currentTarget.style.boxShadow="none"}}}>
+              <div style={{fontSize:m?14:16,fontWeight:800,color:p.c}}>{p.n}</div></div>)}</div>
+
+          {/* Bottom: game grid (trending) */}
+          {expGames.length>1&&<><div className="sec-title" style={{fontSize:m?13:15}}>TRENDING</div>
+            <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(150px,1fr))",gap:m?8:14}}>
+              {expGames.slice(1,m?10:13).map((g,i)=><GC key={g.id} game={g} delay={i*10} onClick={setSel} mobile={m} ud={ud}/>)}</div></>}
+        </>
+
+        /* Category selected — show filtered results */
+        :<div>
+          {/* Header bar */}
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+            <button onClick={()=>{setExpCat(null);setFPlat(null);setExpPage(1);setExpGames([]);loadExplore(1,null,null,fSort)}} style={{padding:"8px 16px",borderRadius:12,border:"none",background:"rgba(255,255,255,.04)",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>← All Categories</button>
+            {expCat&&<span style={{padding:"6px 14px",borderRadius:20,background:(CATS.find(x=>x.id===expCat)?.c||"#67e8f9")+"18",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
+              <span>{CATS.find(x=>x.id===expCat)?.ico}</span>
+              <span style={{color:CATS.find(x=>x.id===expCat)?.c||"#67e8f9"}}>{CATS.find(x=>x.id===expCat)?.l}</span></span>}
+            {fPlat&&<span style={{padding:"6px 14px",borderRadius:20,background:(PLATS.find(p=>p.id===fPlat)?.c||"#67e8f9")+"18",fontSize:13,fontWeight:700,color:PLATS.find(p=>p.id===fPlat)?.c||"#67e8f9"}}>{PLATS.find(p=>p.id===fPlat)?.n}</span>}
+            {/* Sort */}
+            <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+              {SORTS.map(s=><button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,expCat,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.12)":"rgba(255,255,255,.02)",color:fSort===s.v?"#67e8f9":"rgba(255,255,255,.2)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div>
           </div>
+
+          {/* Quick-switch categories */}
+          <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:8,marginBottom:12}}>
+            {CATS.map(cat=><button key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,fPlat,fSort)}} style={{padding:"5px 12px",borderRadius:8,border:"none",background:expCat===cat.id?(cat.c+"18"):"rgba(255,255,255,.02)",color:expCat===cat.id?cat.c:"rgba(255,255,255,.2)",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{cat.ico} {cat.l}</button>)}</div>
+
+          {/* Platform filter chips */}
+          <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:8,marginBottom:16}}>
+            <button onClick={()=>{setFPlat(null);setExpPage(1);loadExplore(1,expCat,null,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:!fPlat?"rgba(103,232,249,.12)":"rgba(255,255,255,.02)",color:!fPlat?"#67e8f9":"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>All Platforms</button>
+            {PLATS.map(p=><button key={p.id} onClick={()=>{setFPlat(fPlat===p.id?null:p.id);setExpPage(1);loadExplore(1,expCat,fPlat===p.id?null:p.id,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":"rgba(255,255,255,.02)",color:fPlat===p.id?p.c:"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{p.n}</button>)}</div>
+
+          {/* Results */}
+          {expGames.length>0&&<div style={{fontSize:11,color:"rgba(255,255,255,.15)",marginBottom:10}}>{expGames.length}+ results</div>}
+          <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(150px,1fr))",gap:m?8:14}}>
+            {expGames.map((g,i)=><GC key={g.id} game={g} delay={Math.min(i,16)*8} onClick={setSel} mobile={m} ud={ud}/>)}</div>
+          {expLd&&<Loader/>}
+          {expGames.length>0&&!expLd&&<div style={{textAlign:"center",marginTop:24,marginBottom:20}}>
+            <button onClick={()=>{const np=expPage+1;setExpPage(np);loadExplore(np)}} style={{padding:"14px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,rgba(103,232,249,.08),rgba(129,140,248,.08))",color:"#67e8f9",fontSize:14,fontWeight:700,cursor:"pointer"}}>Load More</button></div>}
+          {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games found</p>}
         </div>}
-
-        {/* Results count */}
-        {(fGenre||fPlat)&&expGames.length>0&&<div style={{fontSize:11,color:"rgba(255,255,255,.2)",marginBottom:12}}>{expGames.length}+ games found</div>}
-
-        {/* Game Grid */}
-        {expGames.length>0&&<div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(150px,1fr))",gap:m?8:14}}>
-          {expGames.slice(fGenre||fPlat?0:1).map((g,i)=><GC key={g.id} game={g} delay={Math.min(i,16)*10} onClick={setSel} mobile={m} ud={ud}/>)}</div>}
-        {expLd&&<Loader/>}
-        {expGames.length>0&&!expLd&&<div style={{textAlign:"center",marginTop:28,marginBottom:20}}>
-          <button onClick={()=>{const np=expPage+1;setExpPage(np);loadExplore(np)}} style={{padding:"14px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,rgba(103,232,249,.1),rgba(129,140,248,.1))",color:"#67e8f9",fontSize:14,fontWeight:700,cursor:"pointer",transition:"all .15s"}}
-            onMouseEnter={e=>e.currentTarget.style.background="linear-gradient(135deg,rgba(103,232,249,.2),rgba(129,140,248,.2))"}
-            onMouseLeave={e=>e.currentTarget.style.background="linear-gradient(135deg,rgba(103,232,249,.1),rgba(129,140,248,.1))"}>Load More Games</button></div>}
-        {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games found for this filter</p>}
       </div>}
 
       {/* LIBRARY */}
