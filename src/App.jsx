@@ -216,7 +216,7 @@ const TC=({game:g,onClick,delay=0,m,ud})=>{const[vis,setVis]=useState(false);
     <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1",marginBottom:4,position:"relative",boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
       {g.img?<img src={g.img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
       <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 50%)"}}/>
-    </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(255,255,255,.5)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.t}</div></div>};
+    </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(128,128,128,.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.t}</div></div>};
 
 /* Validation */
 const validPw=p=>{if(p.length<8)return"Password must be at least 8 characters";if(!/[A-Z]/.test(p))return"Must include an uppercase letter";if(!/[a-z]/.test(p))return"Must include a lowercase letter";if(!/[0-9]/.test(p))return"Must include a number";return null};
@@ -601,8 +601,8 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
         </div></div></div>
 
     {/* Tabs — Letterboxd style */}
-    <div className="hs" style={{display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,.06)",marginBottom:16,overflowX:"auto"}}>
-      {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:m?"8px 12px":"10px 18px",background:"none",border:"none",fontSize:m?11:13,fontWeight:700,cursor:"pointer",color:tab===t.id?"#67e8f9":"rgba(255,255,255,.2)",borderBottom:tab===t.id?"2px solid #67e8f9":"2px solid transparent",whiteSpace:"nowrap",transition:"all .15s"}}>{t.l}</button>)}</div>
+    <div className="hs" style={{display:"flex",gap:0,borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",marginBottom:16,overflowX:"auto"}}>
+      {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:m?"8px 12px":"10px 18px",background:"none",border:"none",fontSize:m?11:13,fontWeight:700,cursor:"pointer",color:tab===t.id?"#67e8f9":(lt?"#94a3b8":"rgba(255,255,255,.2)"),borderBottom:tab===t.id?"2px solid #67e8f9":"2px solid transparent",whiteSpace:"nowrap",transition:"all .15s"}}>{t.l}</button>)}</div>
 
     {/* ═ TAB: Profile ═ */}
     {tab==="profile"&&<div>
@@ -883,7 +883,7 @@ export default function App(){
       *{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
       @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
       @keyframes slideFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{to{background-position:-200% 0}}
-      body{margin:0;overflow-x:hidden}img{-webkit-user-drag:none}.hs::-webkit-scrollbar{display:none}.hs{-ms-overflow-style:none;scrollbar-width:none}
+      body{margin:0;overflow-x:hidden;background:${lt?"#f8fafc":"#0f0c19"}}img{-webkit-user-drag:none}.hs::-webkit-scrollbar{display:none}.hs{-ms-overflow-style:none;scrollbar-width:none}
       @media(max-width:767px){*{-webkit-tap-highlight-color:transparent}}input::placeholder,textarea::placeholder{color:rgba(255,255,255,.15)}
       .gbx{background:#0f0c19;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.06),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent),radial-gradient(ellipse 60% 50% at 50% 100%,rgba(196,181,253,.04),transparent);background-attachment:fixed}
       .gbx-light{background:#f8fafc;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.08),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent)}
@@ -902,15 +902,15 @@ export default function App(){
         <span onClick={()=>{setPg("home");setQ("");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
           <svg width="32" height="32" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/><polygon points="22,4 18,11 26,11" fill="#0f0c19" opacity=".2"/><polygon points="22,40 18,33 26,33" fill="#0f0c19" opacity=".2"/><polygon points="4,22 11,18 11,26" fill="#0f0c19" opacity=".2"/><polygon points="40,22 33,18 33,26" fill="#0f0c19" opacity=".2"/></svg>
           <span style={{fontFamily:"'Outfit'",fontSize:18,fontWeight:900,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GameBoxd</span></span>
-        <div style={{display:"flex",gap:2}}>{NAV.filter(n=>n.id!=="profile").map(n=><button key={n.id} onClick={()=>{setPg(n.id);setQ("");setViewUID(null)}} style={{padding:"6px 14px",borderRadius:20,border:"none",background:pg===n.id?"rgba(255,255,255,.06)":"transparent",color:pg===n.id?"#fff":"rgba(255,255,255,.3)",cursor:"pointer",fontSize:12,fontWeight:700}}>{n.l}</button>)}</div></div>
+        <div style={{display:"flex",gap:2}}>{NAV.filter(n=>n.id!=="profile").map(n=><button key={n.id} onClick={()=>{setPg(n.id);setQ("");setViewUID(null)}} style={{padding:"6px 14px",borderRadius:20,border:"none",background:pg===n.id?(lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.06)"):"transparent",color:pg===n.id?(lt?"#1e293b":"#fff"):(lt?"#94a3b8":"rgba(255,255,255,.3)"),cursor:"pointer",fontSize:12,fontWeight:700}}>{n.l}</button>)}</div></div>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <div style={{position:"relative"}}><input placeholder="Search..." value={q} onChange={e=>{setQ(e.target.value);if(e.target.value){setPg("search");setViewUID(null)}}}
-          style={{padding:"8px 14px 8px 32px",borderRadius:14,...glass,color:"#fff",fontSize:12,width:200,outline:"none"}}/>
-          <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"rgba(255,255,255,.2)"}}>🔍</span></div>
+          style={{padding:"8px 14px 8px 32px",borderRadius:14,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.03)",backdropFilter:"blur(12px)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",color:lt?"#1e293b":"#fff",fontSize:12,width:200,outline:"none"}}/>
+          <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>🔍</span></div>
         {user&&<div style={{position:"relative"}}>
           <span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:18,cursor:"pointer",color:nCount?"#fde68a":"rgba(255,255,255,.3)"}}>🔔</span>
           {nCount>0&&<div style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:8,background:"#f87171",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,color:"#fff"}}>{nCount}</div>}
-          {showNotifs&&<div style={{position:"absolute",top:36,right:0,width:320,...glass,background:"rgba(30,27,46,.95)",borderRadius:16,padding:12,zIndex:200,maxHeight:400,overflow:"auto"}}>
+          {showNotifs&&<div style={{position:"absolute",top:36,right:0,width:320,background:lt?"rgba(255,255,255,.97)":"rgba(30,27,46,.95)",backdropFilter:"blur(12px)",border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.06)",borderRadius:16,padding:12,zIndex:200,maxHeight:400,overflow:"auto"}}>
             <h4 style={{fontSize:13,fontWeight:800,marginBottom:10}}>Notifications</h4>
             {notifs.length?notifs.slice(0,15).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11,opacity:n.read?.5:1}}>
               {n.from?.avatar_url?<Av url={n.from.avatar_url} name={n.from.display_name} size={24} v={avV}/>
@@ -928,13 +928,13 @@ export default function App(){
     {m&&<div style={{position:"sticky",top:0,zIndex:100,background:lt?"rgba(248,250,252,.9)":"rgba(15,12,25,.85)",backdropFilter:"blur(20px)",padding:"0 14px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:lt?"1px solid rgba(0,0,0,.04)":"1px solid rgba(255,255,255,.04)"}}>
       {qO?<div style={{flex:1,display:"flex",alignItems:"center",gap:6}}>
         <input autoFocus placeholder="Search..." value={q} onChange={e=>{setQ(e.target.value);if(e.target.value){setPg("search");setViewUID(null)}}}
-          style={{flex:1,padding:"8px 14px",borderRadius:14,...glass,color:"#fff",fontSize:14,outline:"none"}}/>
+          style={{flex:1,padding:"8px 14px",borderRadius:14,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.03)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",backdropFilter:"blur(12px)",color:lt?"#1e293b":"#fff",fontSize:14,outline:"none"}}/>
         <span onClick={()=>{setQO(false);setQ("");setPg("home")}} style={{color:"#67e8f9",fontSize:12,fontWeight:700,cursor:"pointer"}}>✕</span></div>
       :<><span onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
           <svg width="24" height="24" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/><polygon points="22,4 18,11 26,11" fill="#0f0c19" opacity=".2"/><polygon points="22,40 18,33 26,33" fill="#0f0c19" opacity=".2"/><polygon points="4,22 11,18 11,26" fill="#0f0c19" opacity=".2"/><polygon points="40,22 33,18 33,26" fill="#0f0c19" opacity=".2"/></svg>
           <span style={{fontFamily:"'Outfit'",fontSize:15,fontWeight:900,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GameBoxd</span></span>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <span onClick={()=>{setQO(true);setPg("search");setViewUID(null)}} style={{fontSize:15,cursor:"pointer",color:"rgba(255,255,255,.3)"}}>🔍</span>
+          <span onClick={()=>{setQO(true);setPg("search");setViewUID(null)}} style={{fontSize:15,cursor:"pointer",color:lt?"#64748b":"rgba(255,255,255,.3)"}}>🔍</span>
           {user&&<span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:15,cursor:"pointer",color:nCount?"#fde68a":lt?"#64748b":"rgba(255,255,255,.3)",position:"relative"}}>🔔{nCount>0&&<span style={{position:"absolute",top:-4,right:-6,width:12,height:12,borderRadius:6,background:"#f87171",fontSize:7,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{nCount}</span>}</span>}
           <span onClick={toggleTheme} style={{fontSize:14,cursor:"pointer"}}>{lt?"🌙":"☀️"}</span>
           {user?<Av url={prof?.avatar_url} name={dn} size={26} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>
@@ -966,7 +966,7 @@ export default function App(){
           <div style={{display:"flex",justifyContent:"center",marginBottom:m?16:24}}>
             <svg width={m?40:56} height={m?40:56} viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/></svg></div>
           <h1 style={{fontFamily:"'Outfit'",fontSize:m?32:56,fontWeight:900,lineHeight:1.05,letterSpacing:"-.03em"}}>Your gaming<br/><span style={{background:"linear-gradient(135deg,#67e8f9,#818cf8,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>diary awaits</span></h1>
-          <p style={{color:"rgba(255,255,255,.35)",fontSize:m?14:17,marginTop:14,maxWidth:440,margin:"14px auto 28px",lineHeight:1.6}}>Track every game. Rate, review, and build your gaming identity. Connect with friends and discover what to play next.</p>
+          <p style={{color:lt?"#64748b":"rgba(255,255,255,.35)",fontSize:m?14:17,marginTop:14,maxWidth:440,margin:"14px auto 28px",lineHeight:1.6}}>Track every game. Rate, review, and build your gaming identity. Connect with friends and discover what to play next.</p>
           <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
             <button onClick={()=>setSa(true)} style={{padding:"16px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 8px 32px rgba(103,232,249,.2)"}}>Get Started — Free</button>
             <button onClick={()=>setPg("explore")} style={{padding:"16px 32px",borderRadius:16,...glass,border:"1px solid rgba(255,255,255,.08)",color:"rgba(255,255,255,.5)",fontSize:16,fontWeight:700,cursor:"pointer"}}>Explore</button></div>
@@ -1008,19 +1008,18 @@ export default function App(){
           {/* Friends are playing — only when logged in and friends have games */}
           {user&&friendsPlaying.length>0&&<div style={{marginBottom:28}}>
             <div className="sec-title">👫 FRIENDS ARE PLAYING</div>
-            <div className="hs" style={{display:"flex",gap:m?10:14,overflowX:"auto",paddingBottom:8}}>
+            <div className="hs" style={{display:"flex",gap:m?8:10,overflowX:"auto",paddingBottom:8}}>
               {friendsPlaying.slice(0,10).map((fp,i)=><div key={fp.id||i} onClick={()=>{const found=all.find(x=>x.id===fp.game_id);if(found)setSel(found);else setSel({id:fp.game_id,t:fp.game_title,img:fp.game_img,y:"",genre:"",r:null,pf:[]})}}
-                style={{minWidth:m?130:160,flexShrink:0,cursor:"pointer",transition:"transform .15s"}}
+                style={{minWidth:m?110:130,maxWidth:m?110:130,flexShrink:0,cursor:"pointer",transition:"transform .15s"}}
                 onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-3px)"}}
                 onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none"}}>
-                <div style={{borderRadius:14,overflow:"hidden",aspectRatio:"2/3",marginBottom:6,position:"relative",boxShadow:"0 4px 20px rgba(0,0,0,.3)"}}>
-                  {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
-                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 6px",background:"linear-gradient(to top,rgba(15,12,25,.9),transparent)"}}>
-                    <div style={{fontSize:11,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.game_title}</div></div>
+                <div style={{borderRadius:10,overflow:"hidden",width:"100%",height:m?65:80,marginBottom:5,position:"relative",boxShadow:"0 2px 10px rgba(0,0,0,.3)"}}>
+                  {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎮</div>}
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <Av url={fp.profile?.avatar_url} name={fp.profile?.display_name} size={18} v={avV}/>
-                  <span style={{fontSize:10,color:"rgba(255,255,255,.35)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.profile?.display_name}</span>
+                <div style={{fontSize:10,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2,color:lt?"#1e293b":"#fff"}}>{fp.game_title}</div>
+                <div style={{display:"flex",alignItems:"center",gap:4}}>
+                  <Av url={fp.profile?.avatar_url} name={fp.profile?.display_name} size={14} v={avV}/>
+                  <span style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.profile?.display_name}</span>
                 </div></div>)}</div></div>}
 
           {/* Recommended For You */}
@@ -1321,14 +1320,14 @@ export default function App(){
     {m&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:90,background:lt?"rgba(248,250,252,.95)":"rgba(15,12,25,.92)",backdropFilter:"blur(16px)",borderTop:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",display:"flex",paddingTop:5,paddingBottom:"max(env(safe-area-inset-bottom,12px),12px)"}}>
       {NAV.map(n=><div key={n.id} onClick={()=>{setPg(n.id);setQ("");setQO(false);setViewUID(null)}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"2px 0"}}>
         <span style={{fontSize:18,opacity:pg===n.id?1:.2}}>{n.i}</span>
-        <span style={{fontSize:8,fontWeight:800,color:pg===n.id?"#67e8f9":"rgba(255,255,255,.15)"}}>{n.l}</span></div>)}</div>}
+        <span style={{fontSize:8,fontWeight:800,color:pg===n.id?"#67e8f9":(lt?"#94a3b8":"rgba(255,255,255,.15)")}}>{n.l}</span></div>)}</div>}
 
     {/* Mobile notification panel */}
-    {m&&showNotifs&&<div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:1900,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"#16132a",width:"100%",maxHeight:"80vh",borderRadius:"24px 24px 0 0",overflow:"auto",border:"1px solid rgba(255,255,255,.06)",padding:20}}>
+    {m&&showNotifs&&<div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:1900,background:lt?"rgba(248,250,252,.95)":"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:lt?"#fff":"#16132a",width:"100%",maxHeight:"80vh",borderRadius:"24px 24px 0 0",overflow:"auto",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",padding:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <h3 style={{fontSize:18,fontWeight:900}}>Notifications</h3>
-          <button onClick={()=>setShowNotifs(false)} style={{background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer",padding:"6px 10px",borderRadius:8}}>✕</button></div>
+          <button onClick={()=>setShowNotifs(false)} style={{background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.06)",border:"none",color:lt?"#475569":"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer",padding:"6px 10px",borderRadius:8}}>✕</button></div>
         {notifs.length?notifs.slice(0,20).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.03)",opacity:n.read?.5:1}}>
           {n.from?.avatar_url?<Av url={n.from.avatar_url} name={n.from.display_name} size={28} v={avV}/>
           :<span style={{fontSize:18,flexShrink:0}}>{n.type==="follow"?"👥":n.type==="like"?"❤️":n.type==="comment"?"💬":"📌"}</span>}
@@ -1338,8 +1337,8 @@ export default function App(){
       </div></div>}
 
     {/* Compare Modal */}
-    {compareData&&<div style={{position:"fixed",inset:0,zIndex:1100,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?12:24}}>
-      <div style={{background:"#16132a",width:"100%",maxWidth:600,maxHeight:"85vh",borderRadius:24,overflow:"auto",border:"1px solid rgba(255,255,255,.06)",padding:m?16:24}}>
+    {compareData&&<div style={{position:"fixed",inset:0,zIndex:1100,background:lt?"rgba(248,250,252,.95)":"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?12:24}}>
+      <div style={{background:lt?"#fff":"#16132a",width:"100%",maxWidth:600,maxHeight:"85vh",borderRadius:24,overflow:"auto",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",padding:m?16:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <h3 style={{fontFamily:"'Outfit'",fontSize:20,fontWeight:900}}>🔄 Library Comparison</h3>
           <button onClick={()=>{setCompareData(null);setCompareUID(null)}} style={{width:32,height:32,borderRadius:10,...glass,border:"none",color:"#fff",fontSize:14,cursor:"pointer"}}>✕</button></div>
