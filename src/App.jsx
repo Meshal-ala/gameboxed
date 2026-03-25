@@ -546,9 +546,19 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const[dResults,setDResults]=useState([]);const[dSelGame,setDSelGame]=useState(null);
   const[bannerPreview,setBannerPreview]=useState(null);const[bannerFile,setBannerFile]=useState(null);const[bannerSaving,setBannerSaving]=useState(false);
   const[libF,setLibF]=useState("all");
-  const[steamAchs,setSteamAchs]=useState([]);
+  const[steamAchs,setSteamAchs]=useState([]);const[showShareCard,setShowShareCard]=useState(false);const[achLoading,setAchLoading]=useState(false);
   const isSelf=me?.id===viewId;const bannerRef=useRef();
-  useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
+  useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false);
+    // Load Steam achievements for all games if Steam linked
+    if(pr?.steam_id&&g.length>0){setAchLoading(true);try{
+      const sr=await fetch(`/api/steam?action=games&steamid=${pr.steam_id}`);const sd=await sr.json();
+      const results=[];for(const ug of g.slice(0,30)){
+        const gameName=ug.game_title?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
+        const match=(sd.games||[]).find(sg=>{const sn=sg.name?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();return sn===gameName||sn.includes(gameName)||gameName.includes(sn)});
+        if(match){try{const ar=await fetch(`/api/steam?action=achievements&steamid=${pr.steam_id}&appid=${match.appid}`);const ad=await ar.json();
+          if(ad.total>0)results.push({game_id:ug.game_id,game_title:ug.game_title,game_img:ug.game_img,...ad})}catch{}}}
+      setSteamAchs(results)}catch{}setAchLoading(false)}
+  })()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name});await sendNotif(viewId,me.id,"follow",`${me.user_metadata?.display_name||"Someone"} followed you`)}};
   const rmFav=async gid=>{await removeFav(viewId,gid);setFavs(favs.filter(f=>f.game_id!==gid))};
   const hcl=async()=>{if(!nLN.trim()||!me)return;await createList(me.id,nLN);setNLN("");reloadLists?.()};
@@ -567,7 +577,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const cancelBanner=()=>{setBannerPreview(null);setBannerFile(null)};
   const shareUrl=`https://gameboxed.vercel.app/?user=${viewId}`;
   if(ld)return<Loader/>;
-  const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"}];
+  const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"},...(p?.steam_id?[{id:"achievements",l:`🏆 ${steamAchs.length||""}`}]:[])];
 
   return<div style={{animation:"fadeIn .15s"}}>
     {/* Header — custom banner with preview */}
@@ -593,7 +603,8 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
         <div style={{display:"flex",gap:5,marginTop:8,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
           {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...glass,color:lt?"#1e293b":"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
             <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
-            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button>
+            <button onClick={()=>setShowShareCard(true)} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>📸 Share Card</button>
+            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗</button>
             <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
           :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
             {onCompare&&<button onClick={()=>onCompare(viewId)} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#6ee7b7",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Compare</button>}
@@ -751,6 +762,79 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet</p>}
     </div>}
 
+    {/* ═ TAB: Achievements ═ */}
+    {tab==="achievements"&&<div>
+      {achLoading?<div style={{textAlign:"center",padding:40}}><div style={{width:24,height:24,border:"2.5px solid rgba(255,255,255,.05)",borderTopColor:"#fde68a",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 12px"}}/><div style={{fontSize:12,color:"rgba(255,255,255,.2)"}}>Loading achievements...</div></div>
+      :steamAchs.length>0?<div>
+        {/* Summary */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
+          <div style={{...glass,padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#fde68a"}}>{steamAchs.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>GAMES</div></div>
+          <div style={{...glass,padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{steamAchs.filter(a=>a.pct===100).length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>PERFECTED</div></div>
+          <div style={{...glass,padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{steamAchs.reduce((s,a)=>s+a.achieved,0)}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>TOTAL UNLOCKED</div></div>
+        </div>
+        {/* Per-game list */}
+        {steamAchs.sort((a,b)=>b.pct-a.pct).map(ach=><div key={ach.game_id} onClick={()=>{const found=allGames.find(x=>x.id===ach.game_id);if(found)setSel?.(found);else setSel?.({id:ach.game_id,t:ach.game_title,img:ach.game_img,y:"",genre:"",r:null,pf:[]})}}
+          style={{...glass,borderRadius:12,padding:"10px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}>
+          {ach.game_img&&<div style={{width:36,height:48,borderRadius:6,overflow:"hidden",flexShrink:0}}><img src={ach.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ach.game_title}</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+              <div style={{flex:1,height:5,background:"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:"100%",width:ach.pct+"%",background:ach.pct===100?"linear-gradient(90deg,#6ee7b7,#fde68a)":"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:3}}/></div>
+              <span style={{fontSize:10,fontWeight:800,color:ach.pct===100?"#6ee7b7":"#67e8f9",flexShrink:0}}>{ach.achieved}/{ach.total}</span>
+            </div></div>
+          {ach.pct===100&&<span style={{fontSize:14}}>🏅</span>}
+        </div>)}
+      </div>
+      :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>{p?.steam_id?"No achievement data found":"Link Steam to see achievements"}</p>}
+    </div>}
+
+    {/* Share Card Modal */}
+    {showShareCard&&<div onClick={()=>setShowShareCard(false)} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .12s",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{maxWidth:420,width:"100%"}}>
+        {/* The card itself */}
+        <div id="share-card" style={{background:"linear-gradient(135deg,#0f0c19 0%,#1a1533 50%,#0f0c19 100%)",borderRadius:24,padding:m?20:28,border:"1px solid rgba(255,255,255,.08)",position:"relative",overflow:"hidden"}}>
+          {/* Aurora glow */}
+          <div style={{position:"absolute",top:0,right:0,width:200,height:200,background:"radial-gradient(circle,rgba(103,232,249,.15),transparent 70%)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",bottom:0,left:0,width:200,height:200,background:"radial-gradient(circle,rgba(129,140,248,.1),transparent 70%)",pointerEvents:"none"}}/>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,position:"relative"}}>
+            <Av url={p?.avatar_url} name={p?.display_name} size={m?56:64} v={avV}/>
+            <div>
+              <h3 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,color:"#fff",margin:0}}>{p?.display_name}</h3>
+              {p?.username&&<div style={{color:"rgba(255,255,255,.3)",fontSize:12}}>@{p.username}</div>}
+              {p?.bio&&<div style={{color:"rgba(255,255,255,.25)",fontSize:11,marginTop:2,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.bio}</div>}
+            </div></div>
+          {/* Stats */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:20}}>
+            {[{n:gs.length,l:"Games",c:"#67e8f9"},{n:gs.filter(g=>g.status==="completed").length,l:"Done",c:"#6ee7b7"},{n:fc.followers,l:"Followers",c:"#818cf8"},{n:revs.length,l:"Reviews",c:"#fde68a"}].map((s,i)=>
+              <div key={i} style={{textAlign:"center",padding:"10px 4px",borderRadius:12,background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.04)"}}>
+                <div style={{fontSize:18,fontWeight:900,color:s.c}}>{s.n}</div>
+                <div style={{fontSize:8,color:"rgba(255,255,255,.25)",fontWeight:700,letterSpacing:".05em"}}>{s.l}</div></div>)}</div>
+          {/* Top games */}
+          {favs.length>0&&<><div style={{fontSize:9,color:"rgba(255,255,255,.2)",fontWeight:700,letterSpacing:".1em",marginBottom:8}}>FAVORITE GAMES</div>
+            <div style={{display:"flex",gap:8,marginBottom:16}}>
+              {favs.slice(0,4).map(f=><div key={f.game_id} style={{flex:1,borderRadius:8,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 12px rgba(0,0,0,.3)"}}>
+                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
+              </div>)}</div></>}
+          {/* Average rating */}
+          {gs.filter(g=>g.my_rating).length>0&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12}}>
+            <span style={{color:"#fde68a",fontSize:14}}>★</span>
+            <span style={{fontSize:14,fontWeight:800,color:"#fff"}}>{(gs.filter(g=>g.my_rating).reduce((s,g)=>s+g.my_rating,0)/gs.filter(g=>g.my_rating).length).toFixed(1)}</span>
+            <span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>avg rating</span></div>}
+          {/* Branding */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,opacity:.4}}>
+            <svg width="16" height="16" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/></svg>
+            <span style={{fontFamily:"'Outfit'",fontSize:11,fontWeight:800,color:"#67e8f9"}}>GameBoxd</span></div>
+        </div>
+        {/* Action buttons */}
+        <div style={{display:"flex",gap:8,marginTop:14,justifyContent:"center"}}>
+          <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"12px 24px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer"}}>🔗 Copy Link</button>
+          <button onClick={()=>setShowShareCard(false)} style={{padding:"12px 24px",borderRadius:14,...glass,border:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.4)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Close</button>
+        </div>
+        <p style={{textAlign:"center",fontSize:10,color:"rgba(255,255,255,.15)",marginTop:10}}>Screenshot this card to share on social media</p>
+      </div></div>}
+
     {flM&&<FLM userId={viewId} type={flM} onClose={()=>setFlM(null)} m={m} goUser={goUser}/>}
   </div>};
 
@@ -815,8 +899,6 @@ export default function App(){
     {id:"top",l:"Top Sellers",ico:"🏆",c:"#fde68a",q:"&ordering=-added&dates=2024-01-01,2026-12-31"},
     {id:"new",l:"New Releases",ico:"🆕",c:"#6ee7b7",q:"&ordering=-released&dates=2025-01-01,2026-12-31"},
     {id:"upcoming",l:"Coming Soon",ico:"📅",c:"#67e8f9",q:"&ordering=-added&dates=2026-04-01,2027-12-31"},
-    {id:"free",l:"Free to Play",ico:"🎁",c:"#c4b5fd",q:"&tags=free-to-play"},
-    {id:"specials",l:"On Sale",ico:"💰",c:"#fda4af",q:"&ordering=-metacritic&metacritic=80,100"},
     {id:"action",l:"Action",ico:"⚔️",c:"#f87171",q:"&genres=action"},
     {id:"adventure",l:"Adventure",ico:"🗺️",c:"#67e8f9",q:"&genres=adventure"},
     {id:"rpg",l:"RPG",ico:"🧙",c:"#818cf8",q:"&genres=role-playing-games-rpg"},
@@ -1154,8 +1236,8 @@ export default function App(){
           <div className="sec-title" style={{fontSize:m?13:15}}>CATEGORIES</div>
 
           {/* Top row: Special categories */}
-          <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(5,1fr)",gap:m?8:10,marginBottom:20}}>
-            {CATS.slice(0,5).map(cat=>
+          <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(3,1fr)",gap:m?8:10,marginBottom:20}}>
+            {CATS.slice(0,3).map(cat=>
               <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
                 style={{padding:m?"16px 12px":"20px 16px",borderRadius:16,background:`linear-gradient(135deg,${cat.c}06,${cat.c}12)`,border:`1px solid ${cat.c}12`,cursor:"pointer",textAlign:"center",transition:"all .2s"}}
                 onMouseEnter={e=>{if(!m){e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.borderColor=cat.c+"40";e.currentTarget.style.boxShadow=`0 8px 24px ${cat.c}15`}}}
@@ -1167,7 +1249,7 @@ export default function App(){
           {/* Genre grid */}
           <div className="sec-title" style={{fontSize:m?13:15}}>GENRES</div>
           <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(7,1fr)",gap:m?6:8,marginBottom:20}}>
-            {CATS.slice(5,19).map(cat=>
+            {CATS.slice(3,17).map(cat=>
               <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
                 style={{padding:m?"12px 8px":"14px 10px",borderRadius:12,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer",textAlign:"center",transition:"all .2s"}}
                 onMouseEnter={e=>{if(!m){e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.background=cat.c+"10";e.currentTarget.style.borderColor=cat.c+"30"}}}
@@ -1179,7 +1261,7 @@ export default function App(){
           {/* Tags/Special */}
           <div className="sec-title" style={{fontSize:m?13:15}}>BROWSE BY TAG</div>
           <div style={{display:"flex",gap:m?6:8,flexWrap:"wrap",marginBottom:24}}>
-            {CATS.slice(19).map(cat=>
+            {CATS.slice(17).map(cat=>
               <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
                 style={{padding:m?"8px 14px":"10px 18px",borderRadius:20,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all .2s"}}
                 onMouseEnter={e=>{if(!m){e.currentTarget.style.background=cat.c+"10";e.currentTarget.style.borderColor=cat.c+"30"}}}
