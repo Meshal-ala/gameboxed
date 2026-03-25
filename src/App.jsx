@@ -380,7 +380,7 @@ const FLM=({userId,type,onClose,m,goUser})=>{const[list,setList]=useState([]);co
         <button onClick={onClose} style={{padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer"}}>✕</button></div>}
       <div style={{padding:"20px 20px 24px"}}><h3 style={{fontSize:18,fontWeight:900,marginBottom:16}}>{type==="followers"?"Followers":"Following"}</h3>
         {ld?<Loader/>:list.length?list.map(p=><div key={p.id} onClick={()=>{onClose();goUser(p.id)}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px",borderRadius:12,cursor:"pointer",marginBottom:4}}
-          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.04)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          onMouseEnter={e=>e.currentTarget.style.background=lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <Av url={p.avatar_url} name={p.display_name} size={38} v={Date.now()}/><div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>{p.display_name}</div>{p.username&&<div style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>@{p.username}</div>}</div></div>)
         :<p style={{textAlign:"center",padding:24,color:"rgba(255,255,255,.2)"}}>No {type} yet</p>}</div></div></div>};
 
@@ -465,75 +465,75 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
         <div style={{position:"absolute",inset:0,background:lt?"linear-gradient(to top,#f8fafc 0%,transparent 100%)":"linear-gradient(to top,#0f0c19 0%,transparent 100%)"}}/>
         <div style={{position:"absolute",bottom:m?16:28,left:m?16:28}}><h2 style={{fontFamily:"'Outfit'",fontSize:m?26:38,fontWeight:900,color:"#fff"}}>{g.t}</h2>
           <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
-            <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{g.y}{g.genre?" · "+g.genre:""}</span>
-            {g.pf?.length>0&&<><span style={{color:"rgba(255,255,255,.1)"}}>·</span><div style={{display:"flex",gap:4}}>
-              {g.pf.map((p,i)=><span key={i} style={{padding:"2px 8px",borderRadius:6,background:"rgba(255,255,255,.08)",fontSize:9,fontWeight:800,color:p.c,backdropFilter:"blur(8px)"}}>{p.n}</span>)}</div></>}
+            <span style={{color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:13}}>{g.y}{g.genre?" · "+g.genre:""}</span>
+            {g.pf?.length>0&&<><span style={{color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)"}}>·</span><div style={{display:"flex",gap:4}}>
+              {g.pf.map((p,i)=><span key={i} style={{padding:"2px 8px",borderRadius:6,background:lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.08)",fontSize:9,fontWeight:800,color:p.c,backdropFilter:"blur(8px)"}}>{p.n}</span>)}</div></>}
           </div></div></div>
       <div style={{padding:m?"14px 16px 36px":"20px 24px 28px"}}>
         {/* Favorite + Scores row */}
         <div style={{display:"flex",gap:10,marginBottom:14,alignItems:"center"}}>
-          <button onClick={toggleFav} disabled={favLd} style={{padding:"10px 14px",borderRadius:14,...glass,border:isFav?"2px solid #fde68a":"1px solid rgba(255,255,255,.06)",color:isFav?"#fde68a":"rgba(255,255,255,.25)",fontSize:20,cursor:"pointer",flexShrink:0,background:isFav?"rgba(253,230,138,.08)":"rgba(255,255,255,.03)",transition:"all .15s"}} title={isFav?"Remove from favorites":"Add to favorites (max 4)"}>⭐</button>
-          {g.r&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>COMMUNITY</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}><span style={{color:"#fde68a",fontSize:16}}>★</span><span style={{fontSize:20,fontWeight:900}}>{g.r}</span></div></div>}
-          {g.mc&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>METACRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:g.mc>=75?"#6ee7b7":"#fde68a"}}>{g.mc}</div></div>}
-          {oc&&<div onClick={()=>window.open(oc.url,"_blank")} style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center",cursor:"pointer",border:"1px solid rgba(252,165,3,.1)"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>OPENCRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:oc.score>=75?"#6ee7b7":oc.score>=60?"#fde68a":"#fda4af"}}>{oc.score}</div>
-            {oc.tier&&<div style={{fontSize:7,color:"rgba(255,255,255,.2)",marginTop:1}}>{oc.tier}</div>}</div>}
-          <div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>YOURS</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:"#67e8f9"}}>{mr||"—"}</div></div></div>
+          <button onClick={toggleFav} disabled={favLd} style={{padding:"10px 14px",borderRadius:14,...(lt?glassL:glass),border:isFav?"2px solid #fde68a":"1px solid rgba(255,255,255,.06)",color:isFav?"#fde68a":"rgba(255,255,255,.25)",fontSize:20,cursor:"pointer",flexShrink:0,background:isFav?"rgba(253,230,138,.08)":"rgba(255,255,255,.03)",transition:"all .15s"}} title={isFav?"Remove from favorites":"Add to favorites (max 4)"}>⭐</button>
+          {g.r&&<div style={{...(lt?glassL:glass),padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>COMMUNITY</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}><span style={{color:"#fde68a",fontSize:16}}>★</span><span style={{fontSize:20,fontWeight:900}}>{g.r}</span></div></div>}
+          {g.mc&&<div style={{...(lt?glassL:glass),padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>METACRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:g.mc>=75?"#6ee7b7":"#fde68a"}}>{g.mc}</div></div>}
+          {oc&&<div onClick={()=>window.open(oc.url,"_blank")} style={{...(lt?glassL:glass),padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center",cursor:"pointer",border:"1px solid rgba(252,165,3,.1)"}}><div style={{fontSize:8,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>OPENCRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:oc.score>=75?"#6ee7b7":oc.score>=60?"#fde68a":"#fda4af"}}>{oc.score}</div>
+            {oc.tier&&<div style={{fontSize:7,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:1}}>{oc.tier}</div>}</div>}
+          <div style={{...(lt?glassL:glass),padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>YOURS</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:"#67e8f9"}}>{mr||"—"}</div></div></div>
         {/* 🏆 Steam Achievements */}
-        {ach&&<div style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:14}}>
+        {ach&&<div style={{...(lt?glassL:glass),padding:"12px 16px",borderRadius:14,marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16}}>🏆</span><span style={{fontSize:12,fontWeight:700,color:"#fde68a"}}>Steam Achievements</span></div>
             <span style={{fontSize:12,fontWeight:800,color:ach.pct===100?"#6ee7b7":"#67e8f9"}}>{ach.achieved}/{ach.total} ({ach.pct}%)</span></div>
-          <div style={{width:"100%",height:8,background:"rgba(255,255,255,.04)",borderRadius:4,overflow:"hidden"}}>
+          <div style={{width:"100%",height:8,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",borderRadius:4,overflow:"hidden"}}>
             <div style={{height:"100%",width:ach.pct+"%",background:ach.pct===100?"linear-gradient(90deg,#6ee7b7,#fde68a)":"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:4,transition:"width .6s ease"}}/>
           </div>
           {ach.pct===100&&<div style={{textAlign:"center",marginTop:6,fontSize:10,color:"#fde68a",fontWeight:700}}>🎉 100% Completed!</div>}
         </div>}
         {/* OpenCritic Details */}
-        {oc&&oc.recommended&&<div style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:14}}>
+        {oc&&oc.recommended&&<div style={{...(lt?glassL:glass),padding:"12px 16px",borderRadius:14,marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:14}}>📊</span><span style={{fontSize:12,fontWeight:700,color:"#fca5a5"}}>OpenCritic</span></div>
-            <span style={{fontSize:11,color:"rgba(255,255,255,.25)"}}>{oc.reviewCount} critic reviews</span></div>
+            <span style={{fontSize:11,color:lt?"#64748b":"rgba(255,255,255,.25)"}}>{oc.reviewCount} critic reviews</span></div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{flex:1}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                <span style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>Critics Recommend</span>
+                <span style={{fontSize:10,color:lt?"#64748b":"rgba(255,255,255,.3)"}}>Critics Recommend</span>
                 <span style={{fontSize:11,fontWeight:800,color:oc.recommended>=75?"#6ee7b7":"#fde68a"}}>{oc.recommended}%</span></div>
-              <div style={{width:"100%",height:6,background:"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
+              <div style={{width:"100%",height:6,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
                 <div style={{height:"100%",width:oc.recommended+"%",background:oc.recommended>=75?"linear-gradient(90deg,#6ee7b7,#67e8f9)":"linear-gradient(90deg,#fde68a,#fda4af)",borderRadius:3,transition:"width .6s"}}/>
               </div></div></div>
         </div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
-          <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
-          <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>STATUS</div>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(SC).map(([k,c])=><button key={k} onClick={()=>sv("status",k)} style={{padding:"4px 10px",borderRadius:20,fontSize:9,fontWeight:700,cursor:"pointer",border:"none",background:st===k?c.c:"rgba(255,255,255,.04)",color:st===k?"#0f0c19":"rgba(255,255,255,.3)"}}>{c.l}</button>)}
+          <div style={{...(lt?glassL:glass),padding:14,borderRadius:14}}><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
+          <div style={{...(lt?glassL:glass),padding:14,borderRadius:14}}><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>STATUS</div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{Object.entries(SC).map(([k,c])=><button key={k} onClick={()=>sv("status",k)} style={{padding:"4px 10px",borderRadius:20,fontSize:9,fontWeight:700,cursor:"pointer",border:"none",background:st===k?c.c:(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"),color:st===k?"#0f0c19":(lt?"#64748b":"rgba(255,255,255,.3)")}}>{c.l}</button>)}
               {st&&<button onClick={removeGame} style={{padding:"4px 10px",borderRadius:20,fontSize:9,fontWeight:700,cursor:"pointer",border:"1px solid rgba(253,164,175,.2)",background:"transparent",color:"#fda4af"}}>✕ Remove</button>}</div></div></div>
         {/* Add to List */}
         {me&&myLists?.length>0&&<div style={{marginBottom:18}}>
-          <button onClick={()=>setShowLists(!showLists)} style={{padding:"8px 14px",borderRadius:12,fontSize:11,fontWeight:700,cursor:"pointer",...glass,color:"#c4b5fd",border:"1px solid rgba(196,181,253,.15)",width:"100%",textAlign:"left"}}>📝 {showLists?"Hide lists":"Add to list..."}</button>
+          <button onClick={()=>setShowLists(!showLists)} style={{padding:"8px 14px",borderRadius:12,fontSize:11,fontWeight:700,cursor:"pointer",...(lt?glassL:glass),color:"#c4b5fd",border:"1px solid rgba(196,181,253,.15)",width:"100%",textAlign:"left"}}>📝 {showLists?"Hide lists":"Add to list..."}</button>
           {showLists&&<div style={{marginTop:6,display:"flex",flexDirection:"column",gap:4}}>
-            {myLists.map(l=><button key={l.id} onClick={()=>handleAddToList(l.id)} style={{padding:"8px 12px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",background:addedList===l.id?"rgba(110,231,183,.1)":"rgba(255,255,255,.03)",border:addedList===l.id?"1px solid rgba(110,231,183,.2)":"1px solid rgba(255,255,255,.04)",color:addedList===l.id?"#6ee7b7":"rgba(255,255,255,.5)",textAlign:"left",transition:"all .15s"}}>{addedList===l.id?"✓ Added to ":"📝 "}{l.title}</button>)}</div>}</div>}
-        <div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,.06)",marginBottom:16}}>
-          {["about","reviews","media"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"10px 16px",background:"none",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",color:tab===t?"#67e8f9":"rgba(255,255,255,.2)",borderBottom:tab===t?"2px solid #67e8f9":"2px solid transparent",textTransform:"capitalize"}}>{t}{t==="reviews"&&rvs.length?` (${rvs.length})`:""}</button>)}</div>
-        {tab==="about"&&(ldg?<Loader/>:det?.description_raw&&<p style={{color:"rgba(255,255,255,.5)",fontSize:14,lineHeight:1.9}}>{det.description_raw.slice(0,600)}</p>)}
+            {myLists.map(l=><button key={l.id} onClick={()=>handleAddToList(l.id)} style={{padding:"8px 12px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",background:addedList===l.id?"rgba(110,231,183,.1)":(lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)"),border:addedList===l.id?"1px solid rgba(110,231,183,.2)":(lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)"),color:addedList===l.id?"#6ee7b7":(lt?"#334155":"rgba(255,255,255,.5)"),textAlign:"left",transition:"all .15s"}}>{addedList===l.id?"✓ Added to ":"📝 "}{l.title}</button>)}</div>}</div>}
+        <div style={{display:"flex",borderBottom:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.06)",marginBottom:16}}>
+          {["about","reviews","media"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"10px 16px",background:"none",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",color:tab===t?"#67e8f9":(lt?"#94a3b8":"rgba(255,255,255,.2)"),borderBottom:tab===t?"2px solid #67e8f9":"2px solid transparent",textTransform:"capitalize"}}>{t}{t==="reviews"&&rvs.length?` (${rvs.length})`:""}</button>)}</div>
+        {tab==="about"&&(ldg?<Loader/>:det?.description_raw&&<p style={{color:lt?"#334155":"rgba(255,255,255,.5)",fontSize:14,lineHeight:1.9}}>{det.description_raw.slice(0,600)}</p>)}
         {tab==="reviews"&&<div>
-          {me&&<div style={{marginBottom:18,...glass,padding:16,borderRadius:16}}>
+          {me&&<div style={{marginBottom:18,...(lt?glassL:glass),padding:16,borderRadius:16}}>
             <Stars rating={rr} size={20} interactive onRate={setRr}/>
-            <textarea value={rt} onChange={e=>setRt(e.target.value)} rows={3} placeholder="Share your thoughts..." style={{width:"100%",marginTop:10,padding:"12px",borderRadius:10,border:"1px solid rgba(255,255,255,.06)",background:"rgba(255,255,255,.03)",color:"#fff",fontSize:14,outline:"none",resize:"none",fontFamily:"inherit"}}/>
-            <button onClick={subRev} disabled={posting||!rt.trim()} style={{marginTop:8,padding:"10px 20px",borderRadius:10,border:"none",background:rt.trim()?"linear-gradient(135deg,#67e8f9,#818cf8)":"rgba(255,255,255,.04)",color:rt.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:13,fontWeight:800,cursor:rt.trim()?"pointer":"default"}}>{posting?"...":"Post Review"}</button></div>}
+            <textarea value={rt} onChange={e=>setRt(e.target.value)} rows={3} placeholder="Share your thoughts..." style={{width:"100%",marginTop:10,padding:"12px",borderRadius:10,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.06)",background:lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)",color:lt?"#1e293b":"#fff",fontSize:14,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+            <button onClick={subRev} disabled={posting||!rt.trim()} style={{marginTop:8,padding:"10px 20px",borderRadius:10,border:"none",background:rt.trim()?"linear-gradient(135deg,#67e8f9,#818cf8)":(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"),color:rt.trim()?"#0f0c19":(lt?"#cbd5e1":"rgba(255,255,255,.15)"),fontSize:13,fontWeight:800,cursor:rt.trim()?"pointer":"default"}}>{posting?"...":"Post Review"}</button></div>}
           {rvs.map(r=><RevCard key={r.id} r={r} me={me} onClose={onClose} goUser={goUser} avV={avV}/>)}
-          {!rvs.length&&<p style={{textAlign:"center",padding:28,color:"rgba(255,255,255,.15)"}}>No reviews yet</p>}</div>}
+          {!rvs.length&&<p style={{textAlign:"center",padding:28,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No reviews yet</p>}</div>}
         {tab==="media"&&<div>
           {g.ss?.length>1&&<><div className="sec-title" style={{fontSize:10,marginBottom:8}}>SCREENSHOTS</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>{g.ss.slice(1,7).map((s,i)=><img key={i} src={s} alt="" loading="lazy" style={{width:"100%",borderRadius:12,aspectRatio:"16/9",objectFit:"cover"}}/>)}</div></>}
           {sgdbArt.heroes.length>0&&<><div className="sec-title" style={{fontSize:10,marginBottom:8}}>🎨 COMMUNITY HEROES</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8,marginBottom:16}}>{sgdbArt.heroes.slice(0,3).map(h=><div key={h.id} style={{position:"relative",borderRadius:12,overflow:"hidden"}}>
               <img src={h.url} alt="" loading="lazy" style={{width:"100%",borderRadius:12,aspectRatio:"32/13",objectFit:"cover"}}/>
-              <div style={{position:"absolute",bottom:4,right:6,fontSize:8,color:"rgba(255,255,255,.3)",background:"rgba(0,0,0,.5)",padding:"2px 6px",borderRadius:4}}>by {h.author}</div></div>)}</div></>}
+              <div style={{position:"absolute",bottom:4,right:6,fontSize:8,color:lt?"#64748b":"rgba(255,255,255,.3)",background:"rgba(0,0,0,.5)",padding:"2px 6px",borderRadius:4}}>by {h.author}</div></div>)}</div></>}
           {sgdbArt.grids.length>0&&<><div className="sec-title" style={{fontSize:10,marginBottom:8}}>🎨 COMMUNITY COVERS</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>{sgdbArt.grids.slice(0,6).map(gr=><div key={gr.id} style={{position:"relative",borderRadius:10,overflow:"hidden",aspectRatio:"2/3"}}>
               <img src={gr.thumb||gr.url} alt="" loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>
-              <div style={{position:"absolute",bottom:3,right:4,fontSize:7,color:"rgba(255,255,255,.3)",background:"rgba(0,0,0,.5)",padding:"1px 4px",borderRadius:3}}>by {gr.author}</div></div>)}</div></>}
-          {!g.ss?.length&&!sgdbArt.heroes.length&&!sgdbArt.grids.length&&<p style={{textAlign:"center",padding:28,color:"rgba(255,255,255,.15)"}}>No media available</p>}
+              <div style={{position:"absolute",bottom:3,right:4,fontSize:7,color:lt?"#64748b":"rgba(255,255,255,.3)",background:"rgba(0,0,0,.5)",padding:"1px 4px",borderRadius:3}}>by {gr.author}</div></div>)}</div></>}
+          {!g.ss?.length&&!sgdbArt.heroes.length&&!sgdbArt.grids.length&&<p style={{textAlign:"center",padding:28,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No media available</p>}
         </div>}
       </div></div></div>};
 
@@ -586,7 +586,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBannerSelect} style={{display:"none"}}/>
         {bannerPreview?<div style={{position:"absolute",top:m?8:10,right:m?8:10,display:"flex",gap:6,zIndex:10}}>
           <button onClick={saveBanner} disabled={bannerSaving} style={{padding:m?"8px 16px":"6px 14px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:m?12:11,fontWeight:800,cursor:"pointer"}}>{bannerSaving?"Saving...":"Save"}</button>
-          <button onClick={cancelBanner} style={{padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer"}}>Cancel</button></div>
+          <button onClick={cancelBanner} style={{padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:lt?"#1e293b":"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer"}}>Cancel</button></div>
         :<button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",top:m?8:10,right:m?8:10,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:10}}>📷 Banner</button>}
       </>}
     </div>
@@ -594,21 +594,21 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       <Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/>
       <div style={{textAlign:m?"center":"left",flex:1}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:26,fontWeight:900}}>{p?.display_name||"User"}</h2>
-        {p?.username&&<div style={{color:"rgba(255,255,255,.25)",fontSize:12}}>@{p.username}</div>}
-        {p?.bio&&<p style={{color:"rgba(255,255,255,.35)",fontSize:13,lineHeight:1.5,marginTop:4}}>{p.bio}</p>}
+        {p?.username&&<div style={{color:lt?"#64748b":"rgba(255,255,255,.25)",fontSize:12}}>@{p.username}</div>}
+        {p?.bio&&<p style={{color:lt?"#64748b":"rgba(255,255,255,.35)",fontSize:13,lineHeight:1.5,marginTop:4}}>{p.bio}</p>}
         <div style={{display:"flex",gap:14,marginTop:8,justifyContent:m?"center":"flex-start"}}>
-          <div><span style={{fontWeight:900}}>{gs.length}</span> <span style={{color:"rgba(255,255,255,.2)",fontSize:11}}>games</span></div>
+          <div><span style={{fontWeight:900}}>{gs.length}</span> <span style={{color:lt?"#94a3b8":"rgba(255,255,255,.2)",fontSize:11}}>games</span></div>
           <div onClick={()=>setFlM("followers")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.followers}</span> <span style={{color:"#67e8f9",fontSize:11}}>followers</span></div>
           <div onClick={()=>setFlM("following")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.following}</span> <span style={{color:"#67e8f9",fontSize:11}}>following</span></div></div>
         <div style={{display:"flex",gap:5,marginTop:8,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
           {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...glass,color:lt?"#1e293b":"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
-            <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
-            <button onClick={()=>setShowShareCard(true)} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>📸 Share Card</button>
-            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗</button>
-            <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
-          :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
-            {onCompare&&<button onClick={()=>onCompare(viewId)} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#6ee7b7",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Compare</button>}
-            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button></>}
+            <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
+            <button onClick={()=>setShowShareCard(true)} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>📸 Share Card</button>
+            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:lt?"#64748b":"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗</button>
+            <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
+          :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?(lt?"1px solid rgba(0,0,0,.1)":"1px solid rgba(255,255,255,.1)"):"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?(lt?"#475569":"rgba(255,255,255,.4)"):"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
+            {onCompare&&<button onClick={()=>onCompare(viewId)} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#6ee7b7",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Compare</button>}
+            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button></>}
         </div></div></div>
 
     {/* Tabs — Letterboxd style */}
@@ -622,80 +622,80 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
         <div style={{display:"flex",gap:m?8:12,justifyContent:"center"}}>
           {favs.map(f=>{const gObj=allGames.find(x=>x.id===f.game_id)||{id:f.game_id,t:f.game_title,img:f.game_img,y:"",genre:"",r:null,pf:[]};
             return<FavCard key={f.game_id} fav={f} onClick={()=>setSel?.(gObj)} m={m}/>})}</div></div>}
-      {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 20px",...glass,borderRadius:14,marginBottom:20}}>
-        <div style={{fontSize:20,marginBottom:4}}>⭐</div><p style={{color:"rgba(255,255,255,.15)",fontSize:11}}>Open a game and click ⭐ to showcase up to 4 favorites</p></div>}
+      {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 20px",...(lt?glassL:glass),borderRadius:14,marginBottom:20}}>
+        <div style={{fontSize:20,marginBottom:4}}>⭐</div><p style={{color:lt?"#94a3b8":"rgba(255,255,255,.15)",fontSize:11}}>Open a game and click ⭐ to showcase up to 4 favorites</p></div>}
 
       {/* Recent activity preview */}
       {acts.length>0&&<div style={{marginBottom:20}}><div className="sec-title">RECENT ACTIVITY</div>
-        {acts.slice(0,5).map(a=><div key={a.id} onClick={()=>{if(a.game_id){const found=allGames.find(x=>x.id===a.game_id);if(found)setSel?.(found);else setSel?.({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}else if(a.target_user_id)goUser(a.target_user_id)}} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11,cursor:a.game_id||a.target_user_id?"pointer":"default"}}>
-          <span style={{fontSize:9,color:"rgba(255,255,255,.1)",width:22,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
+        {acts.slice(0,5).map(a=><div key={a.id} onClick={()=>{if(a.game_id){const found=allGames.find(x=>x.id===a.game_id);if(found)setSel?.(found);else setSel?.({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}else if(a.target_user_id)goUser(a.target_user_id)}} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.03)",fontSize:11,cursor:a.game_id||a.target_user_id?"pointer":"default"}}>
+          <span style={{fontSize:9,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",width:22,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
           <span style={{fontSize:12,flexShrink:0}}>{actIcon(a.action)}</span>
           {a.game_img&&<div style={{width:22,height:30,borderRadius:3,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
-          <div style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600,color:a.game_id||a.target_user_id?"#67e8f9":"inherit"}}>{a.game_title||a.target_user_name||""}</span> <span style={{color:"rgba(255,255,255,.12)"}}>{actLabel(a.action)}</span></div>
+          <div style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600,color:a.game_id||a.target_user_id?"#67e8f9":"inherit"}}>{a.game_title||a.target_user_name||""}</span> <span style={{color:lt?"#cbd5e1":"rgba(255,255,255,.12)"}}>{actLabel(a.action)}</span></div>
           {a.rating?<Stars rating={parseFloat(a.rating)} size={7}/>:null}
         </div>)}</div>}
 
       {/* Recent reviews preview */}
       {revs.length>0&&<div><div className="sec-title">RECENT REVIEWS</div>
-        {revs.slice(0,3).map(r=><div key={r.id} style={{...glass,padding:12,borderRadius:12,marginBottom:6}}>
+        {revs.slice(0,3).map(r=><div key={r.id} style={{...(lt?glassL:glass),padding:12,borderRadius:12,marginBottom:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
             {r.game_img&&<div style={{width:28,height:38,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
             <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{r.game_title}</div>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={9}/>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div></div></div>
-          <p style={{color:"rgba(255,255,255,.45)",fontSize:12,lineHeight:1.6,margin:0}}>{r.text}</p></div>)}</div>}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={9}/>}<span style={{fontSize:9,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div></div></div>
+          <p style={{color:lt?"#475569":"rgba(255,255,255,.45)",fontSize:12,lineHeight:1.6,margin:0}}>{r.text}</p></div>)}</div>}
     </div>}
 
     {/* ═ TAB: Games ═ */}
     {tab==="games"&&<div>
       {gs.length>0&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
         {[{k:"all",l:"All",c:"#fff"},{k:"completed",l:"Done",c:"#6ee7b7"},{k:"playing",l:"Playing",c:"#67e8f9"},{k:"wishlist",l:"Wishlist",c:"#fde68a"},{k:"backlog",l:"Backlog",c:"#c4b5fd"},{k:"dropped",l:"Dropped",c:"#fda4af"}].map(f=>
-          <button key={f.k} onClick={()=>setLibF(f.k)} style={{padding:"4px 10px",borderRadius:8,border:"none",background:libF===f.k?f.c+"22":"rgba(255,255,255,.03)",color:libF===f.k?f.c:"rgba(255,255,255,.25)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{f.l} {f.k==="all"?gs.length:gs.filter(g=>g.status===f.k).length}</button>)}</div>}
+          <button key={f.k} onClick={()=>setLibF(f.k)} style={{padding:"4px 10px",borderRadius:8,border:"none",background:libF===f.k?f.c+"22":(lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)"),color:libF===f.k?f.c:(lt?"#64748b":"rgba(255,255,255,.25)"),fontSize:10,fontWeight:700,cursor:"pointer"}}>{f.l} {f.k==="all"?gs.length:gs.filter(g=>g.status===f.k).length}</button>)}</div>}
       {(()=>{const filtered=libF==="all"?gs:gs.filter(g=>g.status===libF);return filtered.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:5}}>
         {filtered.map(g=>{const found=allGames.find(x=>x.id===g.game_id);const gObj=found||{id:g.game_id,t:g.game_title,img:g.game_img,y:"",genre:"",r:null,pf:[]};
           return<div key={g.game_id} onClick={()=>setSel?.(gObj)} style={{borderRadius:5,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)",cursor:"pointer"}}>
-          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
+          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
           {g.status&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:SC[g.status]?.c||"#fff"}}/>}
           {g.my_rating&&<div style={{position:"absolute",top:2,right:2,padding:"1px 4px",borderRadius:3,background:"rgba(0,0,0,.7)",fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
         </div>})}</div>
-      :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>{libF==="all"?"No games yet":"No "+libF+" games"}</p>})()}
+      :<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{libF==="all"?"No games yet":"No "+libF+" games"}</p>})()}
     </div>}
 
     {/* ═ TAB: Diary ═ */}
     {tab==="diary"&&<div>
       {isSelf&&<button onClick={()=>setShowDiaryForm(!showDiaryForm)} style={{padding:"10px 18px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer",marginBottom:14,width:"100%"}}>+ Log a game</button>}
-      {showDiaryForm&&<div style={{...glass,padding:16,borderRadius:16,marginBottom:16}}>
+      {showDiaryForm&&<div style={{...(lt?glassL:glass),padding:16,borderRadius:16,marginBottom:16}}>
         <div style={{position:"relative",marginBottom:10}}>
-          <input value={dGame} onChange={e=>{setDGame(e.target.value);searchDiaryGame(e.target.value)}} placeholder="Search for a game..." style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none"}}/>
-          {dResults.length>0&&!dSelGame&&<div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:10,...glass,borderRadius:10,background:"rgba(30,27,46,.95)",maxHeight:180,overflow:"auto",marginTop:4}}>
-            {dResults.map(g=><div key={g.id} onClick={()=>{setDSelGame(g);setDGame(g.t);setDResults([])}} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.03)"}}
-              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.04)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-              {g.img&&<img src={g.img} style={{width:24,height:32,borderRadius:3,objectFit:"cover"}}/>}<span style={{fontSize:12,fontWeight:600}}>{g.t}</span><span style={{fontSize:10,color:"rgba(255,255,255,.2)",marginLeft:"auto"}}>{g.y}</span></div>)}</div>}
+          <input value={dGame} onChange={e=>{setDGame(e.target.value);searchDiaryGame(e.target.value)}} placeholder="Search for a game..." style={{width:"100%",padding:"10px 14px",borderRadius:10,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.08)",background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",color:lt?"#1e293b":"#fff",fontSize:13,outline:"none"}}/>
+          {dResults.length>0&&!dSelGame&&<div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:10,...(lt?glassL:glass),borderRadius:10,background:"rgba(30,27,46,.95)",maxHeight:180,overflow:"auto",marginTop:4}}>
+            {dResults.map(g=><div key={g.id} onClick={()=>{setDSelGame(g);setDGame(g.t);setDResults([])}} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.03)"}}
+              onMouseEnter={e=>e.currentTarget.style.background=lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              {g.img&&<img src={g.img} style={{width:24,height:32,borderRadius:3,objectFit:"cover"}}/>}<span style={{fontSize:12,fontWeight:600}}>{g.t}</span><span style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginLeft:"auto"}}>{g.y}</span></div>)}</div>}
         </div>
         {dSelGame&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,background:"rgba(103,232,249,.06)",marginBottom:10}}>
           {dSelGame.img&&<img src={dSelGame.img} style={{width:24,height:32,borderRadius:3,objectFit:"cover"}}/>}<span style={{fontSize:12,fontWeight:700,flex:1}}>{dSelGame.t}</span>
           <button onClick={()=>{setDSelGame(null);setDGame("")}} style={{background:"none",border:"none",color:"#fda4af",fontSize:12,cursor:"pointer"}}>✕</button></div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-          <div><label style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>DATE</label><input type="date" value={dDate} onChange={e=>setDDate(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:12,outline:"none",colorScheme:"dark"}}/></div>
-          <div><label style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>HOURS</label><input type="number" value={dHours} onChange={e=>setDHours(e.target.value)} placeholder="0" style={{width:"100%",padding:"8px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:12,outline:"none"}}/></div></div>
-        <div style={{marginBottom:10}}><label style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>RATING</label><div style={{marginTop:4}}><Stars rating={dRating} size={20} interactive onRate={setDRating}/></div></div>
-        <textarea value={dNote} onChange={e=>setDNote(e.target.value)} rows={2} placeholder="How was your session?" style={{width:"100%",padding:"10px",borderRadius:8,border:"1px solid rgba(255,255,255,.06)",background:"rgba(255,255,255,.03)",color:"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit",marginBottom:8}}/>
+          <div><label style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>DATE</label><input type="date" value={dDate} onChange={e=>setDDate(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:8,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.08)",background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",color:lt?"#1e293b":"#fff",fontSize:12,outline:"none",colorScheme:"dark"}}/></div>
+          <div><label style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>HOURS</label><input type="number" value={dHours} onChange={e=>setDHours(e.target.value)} placeholder="0" style={{width:"100%",padding:"8px",borderRadius:8,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.08)",background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",color:lt?"#1e293b":"#fff",fontSize:12,outline:"none"}}/></div></div>
+        <div style={{marginBottom:10}}><label style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>RATING</label><div style={{marginTop:4}}><Stars rating={dRating} size={20} interactive onRate={setDRating}/></div></div>
+        <textarea value={dNote} onChange={e=>setDNote(e.target.value)} rows={2} placeholder="How was your session?" style={{width:"100%",padding:"10px",borderRadius:8,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.06)",background:lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)",color:lt?"#1e293b":"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit",marginBottom:8}}/>
         <div style={{display:"flex",gap:6}}>
-          <button onClick={()=>setShowDiaryForm(false)} style={{flex:1,padding:"10px",borderRadius:10,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button>
-          <button onClick={submitDiary} disabled={!dSelGame} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:dSelGame?"linear-gradient(135deg,#67e8f9,#818cf8)":"rgba(255,255,255,.04)",color:dSelGame?"#0f0c19":"rgba(255,255,255,.15)",fontSize:12,fontWeight:800,cursor:dSelGame?"pointer":"default"}}>Log Game</button></div>
+          <button onClick={()=>setShowDiaryForm(false)} style={{flex:1,padding:"10px",borderRadius:10,...(lt?glassL:glass),border:"none",color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+          <button onClick={submitDiary} disabled={!dSelGame} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:dSelGame?"linear-gradient(135deg,#67e8f9,#818cf8)":(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"),color:dSelGame?"#0f0c19":(lt?"#cbd5e1":"rgba(255,255,255,.15)"),fontSize:12,fontWeight:800,cursor:dSelGame?"pointer":"default"}}>Log Game</button></div>
       </div>}
-      {diary.length>0?diary.map(d=><div key={d.id} style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:6,display:"flex",gap:12,alignItems:"center"}}>
+      {diary.length>0?diary.map(d=><div key={d.id} style={{...(lt?glassL:glass),padding:"12px 16px",borderRadius:14,marginBottom:6,display:"flex",gap:12,alignItems:"center"}}>
         <div style={{textAlign:"center",flexShrink:0,width:44}}>
           <div style={{fontSize:18,fontWeight:900,color:"#67e8f9"}}>{new Date(d.played_on).getDate()}</div>
-          <div style={{fontSize:9,color:"rgba(255,255,255,.2)",fontWeight:700}}>{new Date(d.played_on).toLocaleString("en",{month:"short"}).toUpperCase()}</div></div>
+          <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",fontWeight:700}}>{new Date(d.played_on).toLocaleString("en",{month:"short"}).toUpperCase()}</div></div>
         {d.game_img&&<div style={{width:32,height:44,borderRadius:5,overflow:"hidden",flexShrink:0}}><img src={d.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13,fontWeight:700}}>{d.game_title}</div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
             {d.rating&&<Stars rating={parseFloat(d.rating)} size={9}/>}
-            {d.hours_played>0&&<span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{d.hours_played}h</span>}</div>
-          {d.note&&<p style={{fontSize:11,color:"rgba(255,255,255,.3)",margin:"3px 0 0",lineHeight:1.4}}>{d.note}</p>}</div>
-        {isSelf&&<button onClick={()=>rmDiary(d.id)} style={{background:"none",border:"none",color:"rgba(255,255,255,.1)",fontSize:12,cursor:"pointer",flexShrink:0}}>🗑️</button>}
-      </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>{isSelf?"Log your first play session!":"No diary entries yet"}</p>}
+            {d.hours_played>0&&<span style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>{d.hours_played}h</span>}</div>
+          {d.note&&<p style={{fontSize:11,color:lt?"#64748b":"rgba(255,255,255,.3)",margin:"3px 0 0",lineHeight:1.4}}>{d.note}</p>}</div>
+        {isSelf&&<button onClick={()=>rmDiary(d.id)} style={{background:"none",border:"none",color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",fontSize:12,cursor:"pointer",flexShrink:0}}>🗑️</button>}
+      </div>):<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{isSelf?"Log your first play session!":"No diary entries yet"}</p>}
     </div>}
 
     {/* ═ TAB: Reviews ═ */}
@@ -705,95 +705,95 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,marginTop:r===revs[0]?0:8}}>
           {r.game_img&&<div onClick={()=>{const found=allGames.find(x=>x.id===r.game_id);if(found)setSel?.(found);else setSel?.({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{width:32,height:42,borderRadius:5,overflow:"hidden",flexShrink:0,cursor:"pointer"}}><img src={r.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
           <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>{r.game_title}</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={10} show/>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div></div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>{r.rating>0&&<Stars rating={parseFloat(r.rating)} size={10} show/>}<span style={{fontSize:9,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div></div>
           {isSelf&&editRevId!==r.id&&<div style={{display:"flex",gap:4}}>
-            <button onClick={()=>{setEditRevId(r.id);setEditRevText(r.text);setEditRevRating(parseFloat(r.rating)||0)}} style={{padding:"4px 8px",borderRadius:6,...glass,border:"none",color:"rgba(255,255,255,.3)",fontSize:9,cursor:"pointer"}}>✏️</button>
-            <button onClick={()=>doDeleteRev(r.id)} style={{padding:"4px 8px",borderRadius:6,...glass,border:"none",color:"#fda4af",fontSize:9,cursor:"pointer"}}>🗑️</button></div>}
+            <button onClick={()=>{setEditRevId(r.id);setEditRevText(r.text);setEditRevRating(parseFloat(r.rating)||0)}} style={{padding:"4px 8px",borderRadius:6,...(lt?glassL:glass),border:"none",color:lt?"#64748b":"rgba(255,255,255,.3)",fontSize:9,cursor:"pointer"}}>✏️</button>
+            <button onClick={()=>doDeleteRev(r.id)} style={{padding:"4px 8px",borderRadius:6,...(lt?glassL:glass),border:"none",color:"#fda4af",fontSize:9,cursor:"pointer"}}>🗑️</button></div>}
         </div>
         {editRevId===r.id?<div style={{marginBottom:8}}>
           <Stars rating={editRevRating} size={18} interactive onRate={setEditRevRating}/>
-          <textarea value={editRevText} onChange={e=>setEditRevText(e.target.value)} rows={3} style={{width:"100%",marginTop:8,padding:"10px",borderRadius:8,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+          <textarea value={editRevText} onChange={e=>setEditRevText(e.target.value)} rows={3} style={{width:"100%",marginTop:8,padding:"10px",borderRadius:8,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.08)",background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",color:lt?"#1e293b":"#fff",fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
           <div style={{display:"flex",gap:6,marginTop:6}}>
             <button onClick={()=>doSaveRev(r.id)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Save</button>
-            <button onClick={()=>setEditRevId(null)} style={{padding:"8px 16px",borderRadius:8,...glass,border:"none",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button></div></div>
+            <button onClick={()=>setEditRevId(null)} style={{padding:"8px 16px",borderRadius:8,...(lt?glassL:glass),border:"none",color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button></div></div>
         :<RevCard r={{...r,profiles:{display_name:p?.display_name,username:p?.username,avatar_url:p?.avatar_url}}} me={me} goUser={goUser} avV={avV}/>}
-      </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No reviews yet</p>}
+      </div>):<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No reviews yet</p>}
     </div>}
 
     {/* ═ TAB: Lists ═ */}
     {tab==="lists"&&<div>
-      {(isSelf?myLists||[]:[]).map(l=><div key={l.id} style={{...glass,borderRadius:14,padding:"14px 16px",marginBottom:8}}>
+      {(isSelf?myLists||[]:[]).map(l=><div key={l.id} style={{...(lt?glassL:glass),borderRadius:14,padding:"14px 16px",marginBottom:8}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:(l.game_ids?.length)?8:0}}>
-          {editListId===l.id?<><input value={editListName} onChange={e=>setEditListName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doRenameList(l.id)} style={{flex:1,padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,.1)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:13,outline:"none"}}/>
+          {editListId===l.id?<><input value={editListName} onChange={e=>setEditListName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doRenameList(l.id)} style={{flex:1,padding:"6px 10px",borderRadius:8,border:lt?"1px solid rgba(0,0,0,.1)":"1px solid rgba(255,255,255,.1)",background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",color:lt?"#1e293b":"#fff",fontSize:13,outline:"none"}}/>
             <button onClick={()=>doRenameList(l.id)} style={{padding:"4px 10px",borderRadius:6,border:"none",background:"#67e8f9",color:"#0f0c19",fontSize:10,fontWeight:800,cursor:"pointer"}}>Save</button>
-            <button onClick={()=>setEditListId(null)} style={{padding:"4px 10px",borderRadius:6,...glass,color:"rgba(255,255,255,.4)",fontSize:10,fontWeight:700,cursor:"pointer",border:"none"}}>✕</button></>
-          :<><span style={{fontSize:14,fontWeight:700,flex:1}}>📝 {l.title}</span><span style={{fontSize:10,color:"rgba(255,255,255,.15)"}}>{l.game_ids?.length||0} games</span>
-            {isSelf&&<><button onClick={()=>{setEditListId(l.id);setEditListName(l.title)}} style={{padding:"3px 8px",borderRadius:6,...glass,border:"none",color:"rgba(255,255,255,.3)",fontSize:9,cursor:"pointer"}}>✏️</button>
-            <button onClick={()=>doDeleteList(l.id)} style={{padding:"3px 8px",borderRadius:6,...glass,border:"none",color:"#fda4af",fontSize:9,cursor:"pointer"}}>🗑️</button></>}</>}
+            <button onClick={()=>setEditListId(null)} style={{padding:"4px 10px",borderRadius:6,...(lt?glassL:glass),color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:10,fontWeight:700,cursor:"pointer",border:"none"}}>✕</button></>
+          :<><span style={{fontSize:14,fontWeight:700,flex:1}}>📝 {l.title}</span><span style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{l.game_ids?.length||0} games</span>
+            {isSelf&&<><button onClick={()=>{setEditListId(l.id);setEditListName(l.title)}} style={{padding:"3px 8px",borderRadius:6,...(lt?glassL:glass),border:"none",color:lt?"#64748b":"rgba(255,255,255,.3)",fontSize:9,cursor:"pointer"}}>✏️</button>
+            <button onClick={()=>doDeleteList(l.id)} style={{padding:"3px 8px",borderRadius:6,...(lt?glassL:glass),border:"none",color:"#fda4af",fontSize:9,cursor:"pointer"}}>🗑️</button></>}</>}
         </div>
         {l.game_ids?.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(40px,1fr))",gap:3}}>
           {l.game_ids.map(gid=>{const found=allGames.find(x=>x.id===gid);const gData=gs.find(x=>x.game_id===gid);const img=found?.img||gData?.game_img;
             return<div key={gid} style={{position:"relative"}}>
               <div onClick={()=>{if(found)setSel?.(found)}} style={{borderRadius:3,overflow:"hidden",aspectRatio:"2/3",cursor:found?"pointer":"default"}}>
-                {img?<img src={img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🎮</div>}</div>
+                {img?<img src={img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8}}>🎮</div>}</div>
               {isSelf&&<button onClick={()=>doRemoveGameFromList(l.id,gid)} style={{position:"absolute",top:-2,right:-2,width:12,height:12,borderRadius:6,background:"#fda4af",border:"none",color:"#0f0c19",fontSize:7,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
             </div>})}
         </div>}
       </div>)}
       {isSelf&&<div style={{display:"flex",gap:6,marginTop:8}}>
         <input placeholder="New list name..." value={nLN} onChange={e=>setNLN(e.target.value)} onKeyDown={e=>e.key==="Enter"&&hcl()}
-          style={{flex:1,padding:"10px 14px",borderRadius:12,...glass,color:"#fff",fontSize:13,outline:"none"}}/>
+          style={{flex:1,padding:"10px 14px",borderRadius:12,...(lt?glassL:glass),color:lt?"#1e293b":"#fff",fontSize:13,outline:"none"}}/>
         <button onClick={hcl} style={{padding:"10px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Create</button></div>}
-      {!(isSelf?myLists||[]:[]).length&&!isSelf&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No public lists</p>}
+      {!(isSelf?myLists||[]:[]).length&&!isSelf&&<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No public lists</p>}
     </div>}
 
     {/* ═ TAB: Activity ═ */}
     {tab==="activity"&&<div>
-      {acts.length>0?acts.map(a=><div key={a.id} style={{...glass,borderRadius:12,padding:"10px 14px",marginBottom:5,display:"flex",gap:10,alignItems:"center",cursor:a.game_id||a.target_user_id?"pointer":"default"}}
+      {acts.length>0?acts.map(a=><div key={a.id} style={{...(lt?glassL:glass),borderRadius:12,padding:"10px 14px",marginBottom:5,display:"flex",gap:10,alignItems:"center",cursor:a.game_id||a.target_user_id?"pointer":"default"}}
         onClick={()=>{if(a.game_id){const found=allGames.find(x=>x.id===a.game_id);if(found)setSel?.(found);else setSel?.({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}else if(a.target_user_id)goUser(a.target_user_id)}}>
-        <span style={{fontSize:10,color:"rgba(255,255,255,.1)",width:28,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
+        <span style={{fontSize:10,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",width:28,textAlign:"right",flexShrink:0}}>{tA(a.created_at)}</span>
         <span style={{fontSize:14,flexShrink:0}}>{actIcon(a.action)}</span>
         {a.game_img&&<div style={{width:30,height:40,borderRadius:4,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:a.game_id||a.target_user_id?"#67e8f9":"inherit"}}>{a.game_title||a.target_user_name||""}</div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{actLabel(a.action)}{a.extra_text?" · "+a.extra_text:""}</div>
+          <div style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>{actLabel(a.action)}{a.extra_text?" · "+a.extra_text:""}</div>
         </div>
         {a.rating?<Stars rating={parseFloat(a.rating)} size={9}/>:null}
-      </div>):<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet</p>}
+      </div>):<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No activity yet</p>}
     </div>}
 
     {/* ═ TAB: Achievements ═ */}
     {tab==="achievements"&&<div>
-      {achLoading?<div style={{textAlign:"center",padding:40}}><div style={{width:24,height:24,border:"2.5px solid rgba(255,255,255,.05)",borderTopColor:"#fde68a",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 12px"}}/><div style={{fontSize:12,color:"rgba(255,255,255,.2)"}}>Loading achievements...</div></div>
+      {achLoading?<div style={{textAlign:"center",padding:40}}><div style={{width:24,height:24,border:"2.5px solid rgba(255,255,255,.05)",borderTopColor:"#fde68a",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 12px"}}/><div style={{fontSize:12,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>Loading achievements...</div></div>
       :steamAchs.length>0?<div>
         {/* Summary */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
-          <div style={{...glass,padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#fde68a"}}>{steamAchs.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>GAMES</div></div>
-          <div style={{...glass,padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{steamAchs.filter(a=>a.pct===100).length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>PERFECTED</div></div>
-          <div style={{...glass,padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{steamAchs.reduce((s,a)=>s+a.achieved,0)}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>TOTAL UNLOCKED</div></div>
+          <div style={{...(lt?glassL:glass),padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#fde68a"}}>{steamAchs.length}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>GAMES</div></div>
+          <div style={{...(lt?glassL:glass),padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{steamAchs.filter(a=>a.pct===100).length}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>PERFECTED</div></div>
+          <div style={{...(lt?glassL:glass),padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{steamAchs.reduce((s,a)=>s+a.achieved,0)}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>TOTAL UNLOCKED</div></div>
         </div>
         {/* Per-game list */}
         {steamAchs.sort((a,b)=>b.pct-a.pct).map(ach=><div key={ach.game_id} onClick={()=>{const found=allGames.find(x=>x.id===ach.game_id);if(found)setSel?.(found);else setSel?.({id:ach.game_id,t:ach.game_title,img:ach.game_img,y:"",genre:"",r:null,pf:[]})}}
-          style={{...glass,borderRadius:12,padding:"10px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}>
+          style={{...(lt?glassL:glass),borderRadius:12,padding:"10px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}>
           {ach.game_img&&<div style={{width:36,height:48,borderRadius:6,overflow:"hidden",flexShrink:0}}><img src={ach.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ach.game_title}</div>
             <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-              <div style={{flex:1,height:5,background:"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
+              <div style={{flex:1,height:5,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
                 <div style={{height:"100%",width:ach.pct+"%",background:ach.pct===100?"linear-gradient(90deg,#6ee7b7,#fde68a)":"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:3}}/></div>
               <span style={{fontSize:10,fontWeight:800,color:ach.pct===100?"#6ee7b7":"#67e8f9",flexShrink:0}}>{ach.achieved}/{ach.total}</span>
             </div></div>
           {ach.pct===100&&<span style={{fontSize:14}}>🏅</span>}
         </div>)}
       </div>
-      :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>{p?.steam_id?"No achievement data found":"Link Steam to see achievements"}</p>}
+      :<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{p?.steam_id?"No achievement data found":"Link Steam to see achievements"}</p>}
     </div>}
 
     {/* Share Card Modal */}
     {showShareCard&&<div onClick={()=>setShowShareCard(false)} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .12s",padding:16}}>
       <div onClick={e=>e.stopPropagation()} style={{maxWidth:420,width:"100%"}}>
         {/* The card itself */}
-        <div id="share-card" style={{background:"linear-gradient(135deg,#0f0c19 0%,#1a1533 50%,#0f0c19 100%)",borderRadius:24,padding:m?20:28,border:"1px solid rgba(255,255,255,.08)",position:"relative",overflow:"hidden"}}>
+        <div id="share-card" style={{background:"linear-gradient(135deg,#0f0c19 0%,#1a1533 50%,#0f0c19 100%)",borderRadius:24,padding:m?20:28,border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.08)",position:"relative",overflow:"hidden"}}>
           {/* Aurora glow */}
           <div style={{position:"absolute",top:0,right:0,width:200,height:200,background:"radial-gradient(circle,rgba(103,232,249,.15),transparent 70%)",pointerEvents:"none"}}/>
           <div style={{position:"absolute",bottom:0,left:0,width:200,height:200,background:"radial-gradient(circle,rgba(129,140,248,.1),transparent 70%)",pointerEvents:"none"}}/>
@@ -801,27 +801,27 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
           <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,position:"relative"}}>
             <Av url={p?.avatar_url} name={p?.display_name} size={m?56:64} v={avV}/>
             <div>
-              <h3 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,color:"#fff",margin:0}}>{p?.display_name}</h3>
-              {p?.username&&<div style={{color:"rgba(255,255,255,.3)",fontSize:12}}>@{p.username}</div>}
-              {p?.bio&&<div style={{color:"rgba(255,255,255,.25)",fontSize:11,marginTop:2,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.bio}</div>}
+              <h3 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,color:lt?"#1e293b":"#fff",margin:0}}>{p?.display_name}</h3>
+              {p?.username&&<div style={{color:lt?"#64748b":"rgba(255,255,255,.3)",fontSize:12}}>@{p.username}</div>}
+              {p?.bio&&<div style={{color:lt?"#64748b":"rgba(255,255,255,.25)",fontSize:11,marginTop:2,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.bio}</div>}
             </div></div>
           {/* Stats */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:20}}>
             {[{n:gs.length,l:"Games",c:"#67e8f9"},{n:gs.filter(g=>g.status==="completed").length,l:"Done",c:"#6ee7b7"},{n:fc.followers,l:"Followers",c:"#818cf8"},{n:revs.length,l:"Reviews",c:"#fde68a"}].map((s,i)=>
-              <div key={i} style={{textAlign:"center",padding:"10px 4px",borderRadius:12,background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.04)"}}>
+              <div key={i} style={{textAlign:"center",padding:"10px 4px",borderRadius:12,background:lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)"}}>
                 <div style={{fontSize:18,fontWeight:900,color:s.c}}>{s.n}</div>
-                <div style={{fontSize:8,color:"rgba(255,255,255,.25)",fontWeight:700,letterSpacing:".05em"}}>{s.l}</div></div>)}</div>
+                <div style={{fontSize:8,color:lt?"#64748b":"rgba(255,255,255,.25)",fontWeight:700,letterSpacing:".05em"}}>{s.l}</div></div>)}</div>
           {/* Top games */}
-          {favs.length>0&&<><div style={{fontSize:9,color:"rgba(255,255,255,.2)",fontWeight:700,letterSpacing:".1em",marginBottom:8}}>FAVORITE GAMES</div>
+          {favs.length>0&&<><div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",fontWeight:700,letterSpacing:".1em",marginBottom:8}}>FAVORITE GAMES</div>
             <div style={{display:"flex",gap:8,marginBottom:16}}>
               {favs.slice(0,4).map(f=><div key={f.game_id} style={{flex:1,borderRadius:8,overflow:"hidden",aspectRatio:"2/3",boxShadow:"0 4px 12px rgba(0,0,0,.3)"}}>
-                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
+                {f.game_img?<img src={f.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e"}}/>}
               </div>)}</div></>}
           {/* Average rating */}
           {gs.filter(g=>g.my_rating).length>0&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:12}}>
             <span style={{color:"#fde68a",fontSize:14}}>★</span>
-            <span style={{fontSize:14,fontWeight:800,color:"#fff"}}>{(gs.filter(g=>g.my_rating).reduce((s,g)=>s+g.my_rating,0)/gs.filter(g=>g.my_rating).length).toFixed(1)}</span>
-            <span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>avg rating</span></div>}
+            <span style={{fontSize:14,fontWeight:800,color:lt?"#1e293b":"#fff"}}>{(gs.filter(g=>g.my_rating).reduce((s,g)=>s+g.my_rating,0)/gs.filter(g=>g.my_rating).length).toFixed(1)}</span>
+            <span style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>avg rating</span></div>}
           {/* Branding */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,opacity:.4}}>
             <svg width="16" height="16" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/></svg>
@@ -830,9 +830,9 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
         {/* Action buttons */}
         <div style={{display:"flex",gap:8,marginTop:14,justifyContent:"center"}}>
           <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"12px 24px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:13,fontWeight:800,cursor:"pointer"}}>🔗 Copy Link</button>
-          <button onClick={()=>setShowShareCard(false)} style={{padding:"12px 24px",borderRadius:14,...glass,border:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.4)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Close</button>
+          <button onClick={()=>setShowShareCard(false)} style={{padding:"12px 24px",borderRadius:14,...(lt?glassL:glass),border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.06)",color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:13,fontWeight:700,cursor:"pointer"}}>Close</button>
         </div>
-        <p style={{textAlign:"center",fontSize:10,color:"rgba(255,255,255,.15)",marginTop:10}}>Screenshot this card to share on social media</p>
+        <p style={{textAlign:"center",fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.15)",marginTop:10}}>Screenshot this card to share on social media</p>
       </div></div>}
 
     {flM&&<FLM userId={viewId} type={flM} onClose={()=>setFlM(null)} m={m} goUser={goUser}/>}
@@ -962,11 +962,11 @@ export default function App(){
 
   return<div className={lt?"gbx-light":"gbx"} style={{fontFamily:"'DM Sans','Outfit',system-ui,sans-serif",color:lt?"#1e293b":"#fff",minHeight:"100vh",transition:"background .3s,color .3s"}}>
     <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Outfit:wght@100..900&display=swap');
-      *{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+      *{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(128,128,128,.15);border-radius:2px}
       @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
       @keyframes slideFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{to{background-position:-200% 0}}
       body{margin:0;overflow-x:hidden;background:${lt?"#f8fafc":"#0f0c19"}}img{-webkit-user-drag:none}.hs::-webkit-scrollbar{display:none}.hs{-ms-overflow-style:none;scrollbar-width:none}
-      @media(max-width:767px){*{-webkit-tap-highlight-color:transparent}}input::placeholder,textarea::placeholder{color:rgba(255,255,255,.15)}
+      @media(max-width:767px){*{-webkit-tap-highlight-color:transparent}}input::placeholder,textarea::placeholder{color:rgba(128,128,128,.4)}
       .gbx{background:#0f0c19;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.06),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent),radial-gradient(ellipse 60% 50% at 50% 100%,rgba(196,181,253,.04),transparent);background-attachment:fixed}
       .gbx-light{background:#f8fafc;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.08),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent)}
       .gbx-light input,.gbx-light textarea{color:#1e293b!important;background:rgba(0,0,0,.03)!important;border-color:rgba(0,0,0,.1)!important}
@@ -990,16 +990,16 @@ export default function App(){
           style={{padding:"8px 14px 8px 32px",borderRadius:14,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.03)",backdropFilter:"blur(12px)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",color:lt?"#1e293b":"#fff",fontSize:12,width:200,outline:"none"}}/>
           <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:12,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>🔍</span></div>
         {user&&<div style={{position:"relative"}}>
-          <span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:18,cursor:"pointer",color:nCount?"#fde68a":"rgba(255,255,255,.3)"}}>🔔</span>
+          <span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:18,cursor:"pointer",color:nCount?"#fde68a":(lt?"#64748b":"rgba(255,255,255,.3)")}}>🔔</span>
           {nCount>0&&<div style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:8,background:"#f87171",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,color:"#fff"}}>{nCount}</div>}
           {showNotifs&&<div style={{position:"absolute",top:36,right:0,width:320,background:lt?"rgba(255,255,255,.97)":"rgba(30,27,46,.95)",backdropFilter:"blur(12px)",border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.06)",borderRadius:16,padding:12,zIndex:200,maxHeight:400,overflow:"auto"}}>
             <h4 style={{fontSize:13,fontWeight:800,marginBottom:10}}>Notifications</h4>
-            {notifs.length?notifs.slice(0,15).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11,opacity:n.read?.5:1}}>
+            {notifs.length?notifs.slice(0,15).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.03)",fontSize:11,opacity:n.read?.5:1}}>
               {n.from?.avatar_url?<Av url={n.from.avatar_url} name={n.from.display_name} size={24} v={avV}/>
               :<span style={{fontSize:14,flexShrink:0}}>{n.type==="follow"?"👥":n.type==="like"?"❤️":n.type==="comment"?"💬":"📌"}</span>}
-              <div style={{flex:1,minWidth:0}}><span style={{fontWeight:700}}>{n.from?.display_name||""}</span> <span style={{color:"rgba(255,255,255,.4)"}}>{n.message||n.type}</span>{n.game_title&&<span style={{color:"#67e8f9"}}> {n.game_title}</span>}</div>
-              <span style={{fontSize:9,color:"rgba(255,255,255,.1)",flexShrink:0}}>{tA(n.created_at)}</span></div>)
-            :<p style={{color:"rgba(255,255,255,.15)",fontSize:12,textAlign:"center",padding:16}}>No notifications yet</p>}
+              <div style={{flex:1,minWidth:0}}><span style={{fontWeight:700}}>{n.from?.display_name||""}</span> <span style={{color:lt?"#475569":"rgba(255,255,255,.4)"}}>{n.message||n.type}</span>{n.game_title&&<span style={{color:"#67e8f9"}}> {n.game_title}</span>}</div>
+              <span style={{fontSize:9,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",flexShrink:0}}>{tA(n.created_at)}</span></div>)
+            :<p style={{color:lt?"#94a3b8":"rgba(255,255,255,.15)",fontSize:12,textAlign:"center",padding:16}}>No notifications yet</p>}
           </div>}
         </div>}
         {user?<Av url={prof?.avatar_url} name={dn} size={30} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>
@@ -1028,16 +1028,16 @@ export default function App(){
       {pg==="search"&&<div style={{animation:"fadeIn .15s"}}>
         <div style={{display:"flex",gap:4,marginBottom:16}}>
           {[{k:"games",l:"Games",c:sr.length},{k:"people",l:"People",c:pSr.length},{k:"lists",l:"Lists",c:lSr.length}].map(t=>
-            <button key={t.k} onClick={()=>setST(t.k)} style={{padding:"8px 16px",borderRadius:20,border:"none",background:sT===t.k?"rgba(255,255,255,.06)":"transparent",color:sT===t.k?"#fff":"rgba(255,255,255,.3)",fontSize:13,fontWeight:700,cursor:"pointer"}}>{t.l}{q&&!sng&&t.c>0?` ${t.c}`:""}</button>)}</div>
+            <button key={t.k} onClick={()=>setST(t.k)} style={{padding:"8px 16px",borderRadius:20,border:"none",background:sT===t.k?(lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.06)"):"transparent",color:sT===t.k?(lt?"#1e293b":"#fff"):(lt?"#94a3b8":"rgba(255,255,255,.3)"),fontSize:13,fontWeight:700,cursor:"pointer"}}>{t.l}{q&&!sng&&t.c>0?` ${t.c}`:""}</button>)}</div>
         {sng?<Loader/>:<>
-          {sT==="games"&&(sr.length?<div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(140px,1fr))",gap:m?8:12}}>{sr.map((g,i)=><GC key={g.id} game={g} delay={i*12} onClick={setSel} mobile={m} ud={ud}/>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games found</p>)}
+          {sT==="games"&&(sr.length?<div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(140px,1fr))",gap:m?8:12}}>{sr.map((g,i)=><GC key={g.id} game={g} delay={i*12} onClick={setSel} mobile={m} ud={ud}/>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No games found</p>)}
           {sT==="people"&&(pSr.length?<div style={{display:"flex",flexDirection:"column",gap:8}}>{pSr.map(p=>
-            <div key={p.id} onClick={()=>goUser(p.id)} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:16,...glass,cursor:"pointer",transition:"border .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(103,232,249,.15)"} onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.06)"}>
-              <Av url={p.avatar_url} name={p.display_name} size={44} v={avV}/><div style={{flex:1}}><div style={{fontSize:15,fontWeight:700}}>{p.display_name}</div>{p.username&&<div style={{fontSize:12,color:"rgba(255,255,255,.25)"}}>@{p.username}</div>}{p.bio&&<div style={{fontSize:11,color:"rgba(255,255,255,.3)",marginTop:2}}>{p.bio.slice(0,60)}</div>}</div>
-              <span style={{color:"#67e8f9",fontSize:12}}>View →</span></div>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No people</p>)}
-          {sT==="lists"&&(lSr.length?<div style={{display:"flex",flexDirection:"column",gap:8}}>{lSr.map(l=><div key={l.id} style={{padding:"14px 16px",borderRadius:16,...glass}}>
-            <div style={{fontSize:15,fontWeight:700}}>📝 {l.title}</div><div style={{fontSize:11,color:"rgba(255,255,255,.25)",marginTop:4}}>{l.game_ids?.length||0} games · {l.profiles?.display_name}</div></div>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No lists</p>)}
+            <div key={p.id} onClick={()=>goUser(p.id)} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:16,...(lt?glassL:glass),cursor:"pointer",transition:"border .2s"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=lt?"rgba(103,232,249,.3)":"rgba(103,232,249,.15)"} onMouseLeave={e=>e.currentTarget.style.borderColor=lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.06)"}>
+              <Av url={p.avatar_url} name={p.display_name} size={44} v={avV}/><div style={{flex:1}}><div style={{fontSize:15,fontWeight:700}}>{p.display_name}</div>{p.username&&<div style={{fontSize:12,color:lt?"#64748b":"rgba(255,255,255,.25)"}}>@{p.username}</div>}{p.bio&&<div style={{fontSize:11,color:lt?"#64748b":"rgba(255,255,255,.3)",marginTop:2}}>{p.bio.slice(0,60)}</div>}</div>
+              <span style={{color:"#67e8f9",fontSize:12}}>View →</span></div>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No people</p>)}
+          {sT==="lists"&&(lSr.length?<div style={{display:"flex",flexDirection:"column",gap:8}}>{lSr.map(l=><div key={l.id} style={{padding:"14px 16px",borderRadius:16,...(lt?glassL:glass)}}>
+            <div style={{fontSize:15,fontWeight:700}}>📝 {l.title}</div><div style={{fontSize:11,color:lt?"#64748b":"rgba(255,255,255,.25)",marginTop:4}}>{l.game_ids?.length||0} games · {l.profiles?.display_name}</div></div>)}</div>:q&&<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No lists</p>)}
         </>}</div>}
 
       {/* HOME */}
@@ -1051,10 +1051,10 @@ export default function App(){
           <p style={{color:lt?"#64748b":"rgba(255,255,255,.35)",fontSize:m?14:17,marginTop:14,maxWidth:440,margin:"14px auto 28px",lineHeight:1.6}}>Track every game. Rate, review, and build your gaming identity. Connect with friends and discover what to play next.</p>
           <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
             <button onClick={()=>setSa(true)} style={{padding:"16px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:16,fontWeight:800,cursor:"pointer",boxShadow:"0 8px 32px rgba(103,232,249,.2)"}}>Get Started — Free</button>
-            <button onClick={()=>setPg("explore")} style={{padding:"16px 32px",borderRadius:16,...glass,border:"1px solid rgba(255,255,255,.08)",color:"rgba(255,255,255,.5)",fontSize:16,fontWeight:700,cursor:"pointer"}}>Explore</button></div>
+            <button onClick={()=>setPg("explore")} style={{padding:"16px 32px",borderRadius:16,...(lt?glassL:glass),border:lt?"1px solid rgba(0,0,0,.08)":"1px solid rgba(255,255,255,.08)",color:lt?"#334155":"rgba(255,255,255,.5)",fontSize:16,fontWeight:700,cursor:"pointer"}}>Explore</button></div>
           <div style={{display:"flex",gap:20,justifyContent:"center",marginTop:28}}>
             {[{n:"500K+",l:"Games"},{n:"Free",l:"Forever"},{n:"Steam",l:"Import"}].map((s,i)=>
-              <div key={i}><div style={{fontSize:m?18:22,fontWeight:900,color:"#67e8f9"}}>{s.n}</div><div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{s.l}</div></div>)}</div></div>}
+              <div key={i}><div style={{fontSize:m?18:22,fontWeight:900,color:"#67e8f9"}}>{s.n}</div><div style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>{s.l}</div></div>)}</div></div>}
 
         {/* Auto-rotating Hero Carousel — logged in users */}
         {user&&heroGames.length>0&&<div style={{position:"relative",height:m?200:300,borderRadius:24,overflow:"hidden",marginBottom:24}}>
@@ -1064,13 +1064,13 @@ export default function App(){
             <div style={{position:"absolute",bottom:m?16:28,left:m?16:28,right:m?16:120}}>
               <h2 style={{fontFamily:"'Outfit'",fontSize:m?22:36,fontWeight:900,lineHeight:1.05}}>{hg.t}</h2>
               <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
-                <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{hg.y}</span>
-                {hg.genre&&<span style={{color:"rgba(255,255,255,.25)",fontSize:12}}>· {hg.genre}</span>}
+                <span style={{color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:13}}>{hg.y}</span>
+                {hg.genre&&<span style={{color:lt?"#64748b":"rgba(255,255,255,.25)",fontSize:12}}>· {hg.genre}</span>}
                 {hg.r&&<span style={{padding:"3px 8px",borderRadius:6,background:"rgba(253,230,138,.12)",color:"#fde68a",fontSize:11,fontWeight:800}}>★ {hg.r}</span>}
               </div></div></div>)}
           {/* Dots */}
           <div style={{position:"absolute",bottom:m?8:14,right:m?16:28,display:"flex",gap:6}}>
-            {heroGames.map((_,i)=><div key={i} onClick={e=>{e.stopPropagation();setHeroIdx(i);clearInterval(heroTimer.current)}} style={{width:heroIdx===i?20:8,height:8,borderRadius:4,background:heroIdx===i?"#67e8f9":"rgba(255,255,255,.2)",cursor:"pointer",transition:"all .3s"}}/>)}</div>
+            {heroGames.map((_,i)=><div key={i} onClick={e=>{e.stopPropagation();setHeroIdx(i);clearInterval(heroTimer.current)}} style={{width:heroIdx===i?20:8,height:8,borderRadius:4,background:heroIdx===i?"#67e8f9":(lt?"rgba(0,0,0,.2)":"rgba(255,255,255,.2)"),cursor:"pointer",transition:"all .3s"}}/>)}</div>
         </div>}
 
         {/* Skeleton loading */}
@@ -1096,7 +1096,7 @@ export default function App(){
                 onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-3px)"}}
                 onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none"}}>
                 <div style={{borderRadius:10,overflow:"hidden",width:"100%",height:m?65:80,marginBottom:5,position:"relative",boxShadow:"0 2px 10px rgba(0,0,0,.3)"}}>
-                  {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎮</div>}
+                  {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎮</div>}
                 </div>
                 <div style={{fontSize:10,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2,color:lt?"#1e293b":"#fff"}}>{fp.game_title}</div>
                 <div style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1114,12 +1114,12 @@ export default function App(){
             {/* LEFT: News (only when not logged in) */}
             {!m&&!user&&<aside>
               <div className="sec-title">📰 GAME NEWS</div>
-              {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
+              {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
                 onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
                 {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
                 <div style={{padding:"8px 10px"}}>
                   <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                  <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date} · {n.genre}</div>
+                  <div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.25)",marginTop:3}}>{n.date} · {n.genre}</div>
                   {n.mc&&<div style={{marginTop:3}}><span style={{fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:4,background:n.mc>=75?"rgba(110,231,183,.12)":"rgba(253,230,138,.12)",color:n.mc>=75?"#6ee7b7":"#fde68a"}}>MC {n.mc}</span></div>}
                 </div></div>)}
             </aside>}
@@ -1140,42 +1140,42 @@ export default function App(){
               {/* Mobile: news */}
               {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME NEWS</div>
                 <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
-                  {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
+                  {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
                     onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
                     {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
                     <div style={{padding:"8px 10px"}}><div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                      <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
+                      <div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
             </div>
 
             {/* RIGHT sidebar */}
             {!m&&<aside>
               {user&&rRev.length>0&&<div style={{marginBottom:24}}><div className="sec-title">💬 FROM YOUR FEED</div>
-                {rRev.slice(0,5).map(r=><div key={r.id} style={{...glass,padding:"12px",borderRadius:14,marginBottom:8}}>
+                {rRev.slice(0,5).map(r=><div key={r.id} style={{...(lt?glassL:glass),padding:"12px",borderRadius:14,marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
                     <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={20} onClick={()=>goUser(r.user_id)} v={avV}/>
                     <span style={{fontSize:11,fontWeight:700,flex:1,cursor:"pointer"}} onClick={()=>goUser(r.user_id)}>{r.profiles?.display_name}</span>
-                    {r.rating>0&&<span style={{fontSize:9,color:"#fde68a"}}>★{r.rating}</span>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div>
+                    {r.rating>0&&<span style={{fontSize:9,color:"#fde68a"}}>★{r.rating}</span>}<span style={{fontSize:9,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div>
                   <div onClick={()=>{const found=all.find(x=>x.id===r.game_id);if(found)setSel(found);else if(r.game_id)setSel({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3,cursor:"pointer"}}>{r.game_title}</div>
-                  <p style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
+                  <p style={{fontSize:11,color:lt?"#64748b":"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
               {user&&<><div className="sec-title">⚡ FOLLOWING</div>
-                {feed.length?feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
+                {feed.length?feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.03)",fontSize:11}}>
                   <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={18} onClick={()=>goUser(a.user_id)} v={avV}/>
                   <div style={{flex:1,minWidth:0}}>
                     <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
                     <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
-                    <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
+                    <span style={{color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
                     {a.game_title&&<span onClick={()=>{const found=all.find(x=>x.id===a.game_id);if(found)setSel(found);else if(a.game_id)setSel({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.game_title}</span>}
                     {a.action==="followed"&&a.target_user_name&&<span onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.target_user_name}</span>}
                   </div>
-                  <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
-                :<p style={{textAlign:"center",padding:20,color:"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
+                  <span style={{fontSize:9,color:lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
+                :<p style={{textAlign:"center",padding:20,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
               {!user&&<><div className="sec-title">📰 GAME NEWS</div>
-                {news.slice(0,5).map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
+                {news.slice(0,5).map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
                   onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
                   {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}}/>}
                   <div style={{padding:"8px 10px"}}>
                     <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:2}}>{n.date}</div>
+                    <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:2}}>{n.date}</div>
                   </div></div>)}</>}
             </aside>}
           </div>
@@ -1184,35 +1184,35 @@ export default function App(){
       {/* FEED */}
       {pg==="feed"&&user&&<div style={{animation:"fadeIn .15s"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Activity</h2>
-        {feed.length?feed.map(a=><div key={a.id} style={{...glass,borderRadius:14,padding:m?"12px":"14px 16px",marginBottom:6,display:"flex",gap:m?10:14,alignItems:"flex-start"}}>
+        {feed.length?feed.map(a=><div key={a.id} style={{...(lt?glassL:glass),borderRadius:14,padding:m?"12px":"14px 16px",marginBottom:6,display:"flex",gap:m?10:14,alignItems:"flex-start"}}>
           <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={m?32:36} onClick={()=>goUser(a.user_id)} v={avV}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
               <span style={{fontWeight:800,fontSize:13,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
               <span style={{fontSize:14}}>{actIcon(a.action)}</span>
-              <span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>{actLabel(a.action)}</span>
-              <span style={{fontSize:10,color:"rgba(255,255,255,.1)",marginLeft:"auto",flexShrink:0}}>{tA(a.created_at)}</span>
+              <span style={{fontSize:12,color:lt?"#64748b":"rgba(255,255,255,.3)"}}>{actLabel(a.action)}</span>
+              <span style={{fontSize:10,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",marginLeft:"auto",flexShrink:0}}>{tA(a.created_at)}</span>
             </div>
             {/* Game card for game-related actions */}
-            {a.game_title&&<div style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}
+            {a.game_title&&<div style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",borderRadius:10,background:lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}
               onClick={()=>{const found=all.find(x=>x.id===a.game_id);if(found)setSel(found);else if(a.game_id)setSel({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}}>
               {a.game_img&&<div style={{width:36,height:48,borderRadius:6,overflow:"hidden",flexShrink:0}}><img src={a.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.game_title}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
                   {a.action==="rated"&&a.rating&&<Stars rating={parseFloat(a.rating)} size={10} show/>}
-                  {a.extra_text&&<span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>in "{a.extra_text}"</span>}
+                  {a.extra_text&&<span style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>in "{a.extra_text}"</span>}
                 </div>
               </div>
             </div>}
             {/* Follow action */}
-            {a.action==="followed"&&a.target_user_name&&<div onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}>
+            {a.action==="followed"&&a.target_user_name&&<div onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,background:lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}>
               <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#67e8f9,#818cf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#0f0c19"}}>{(a.target_user_name||"?").charAt(0)}</div>
               <span style={{fontSize:13,fontWeight:600}}>{a.target_user_name}</span>
             </div>}
           </div>
         </div>)
-        :<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
+        :<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
 
       {/* EXPLORE — Steam-style Category Browsing */}
       {pg==="explore"&&<div style={{animation:"fadeIn .15s"}}>
@@ -1228,8 +1228,8 @@ export default function App(){
               <h2 style={{fontFamily:"'Outfit'",fontSize:m?24:38,fontWeight:900,margin:0,lineHeight:1.05}}>{expGames[0].t}</h2>
               <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
                 {expGames[0].r&&<span style={{padding:"4px 10px",borderRadius:8,background:"rgba(253,230,138,.12)",color:"#fde68a",fontSize:12,fontWeight:800}}>★ {expGames[0].r}</span>}
-                <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{expGames[0].y}</span>
-                {expGames[0].genre&&<span style={{color:"rgba(255,255,255,.25)",fontSize:12}}>{expGames[0].genre}</span>}
+                <span style={{color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:13}}>{expGames[0].y}</span>
+                {expGames[0].genre&&<span style={{color:lt?"#64748b":"rgba(255,255,255,.25)",fontSize:12}}>{expGames[0].genre}</span>}
               </div></div></div>}
 
           {/* Steam-style category sections */}
@@ -1251,11 +1251,11 @@ export default function App(){
           <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(7,1fr)",gap:m?6:8,marginBottom:20}}>
             {CATS.slice(3,17).map(cat=>
               <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
-                style={{padding:m?"12px 8px":"14px 10px",borderRadius:12,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer",textAlign:"center",transition:"all .2s"}}
+                style={{padding:m?"12px 8px":"14px 10px",borderRadius:12,background:lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",cursor:"pointer",textAlign:"center",transition:"all .2s"}}
                 onMouseEnter={e=>{if(!m){e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.background=cat.c+"10";e.currentTarget.style.borderColor=cat.c+"30"}}}
-                onMouseLeave={e=>{if(!m){e.currentTarget.style.transform="none";e.currentTarget.style.background="rgba(255,255,255,.02)";e.currentTarget.style.borderColor="rgba(255,255,255,.04)"}}}>
+                onMouseLeave={e=>{if(!m){e.currentTarget.style.transform="none";e.currentTarget.style.background=lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)";e.currentTarget.style.borderColor=lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.04)"}}}>
                 <div style={{fontSize:m?18:22}}>{cat.ico}</div>
-                <div style={{fontSize:m?9:10,fontWeight:700,color:"rgba(255,255,255,.5)",marginTop:2}}>{cat.l}</div>
+                <div style={{fontSize:m?9:10,fontWeight:700,color:lt?"#334155":"rgba(255,255,255,.5)",marginTop:2}}>{cat.l}</div>
               </div>)}</div>
 
           {/* Tags/Special */}
@@ -1263,11 +1263,11 @@ export default function App(){
           <div style={{display:"flex",gap:m?6:8,flexWrap:"wrap",marginBottom:24}}>
             {CATS.slice(17).map(cat=>
               <div key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,null,fSort)}}
-                style={{padding:m?"8px 14px":"10px 18px",borderRadius:20,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all .2s"}}
+                style={{padding:m?"8px 14px":"10px 18px",borderRadius:20,background:lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all .2s"}}
                 onMouseEnter={e=>{if(!m){e.currentTarget.style.background=cat.c+"10";e.currentTarget.style.borderColor=cat.c+"30"}}}
-                onMouseLeave={e=>{if(!m){e.currentTarget.style.background="rgba(255,255,255,.02)";e.currentTarget.style.borderColor="rgba(255,255,255,.04)"}}}>
+                onMouseLeave={e=>{if(!m){e.currentTarget.style.background=lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)";e.currentTarget.style.borderColor=lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.04)"}}}>
                 <span style={{fontSize:m?14:16}}>{cat.ico}</span>
-                <span style={{fontSize:m?10:12,fontWeight:700,color:"rgba(255,255,255,.4)"}}>{cat.l}</span>
+                <span style={{fontSize:m?10:12,fontWeight:700,color:lt?"#475569":"rgba(255,255,255,.4)"}}>{cat.l}</span>
               </div>)}</div>
 
           {/* Platform browse */}
@@ -1289,33 +1289,33 @@ export default function App(){
         :<div>
           {/* Header bar */}
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,flexWrap:"wrap"}}>
-            <button onClick={()=>{setExpCat(null);setFPlat(null);setExpPage(1);setExpGames([]);loadExplore(1,null,null,fSort)}} style={{padding:"8px 16px",borderRadius:12,border:"none",background:"rgba(255,255,255,.04)",color:"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>← All Categories</button>
+            <button onClick={()=>{setExpCat(null);setFPlat(null);setExpPage(1);setExpGames([]);loadExplore(1,null,null,fSort)}} style={{padding:"8px 16px",borderRadius:12,border:"none",background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>← All Categories</button>
             {expCat&&<span style={{padding:"6px 14px",borderRadius:20,background:(CATS.find(x=>x.id===expCat)?.c||"#67e8f9")+"18",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
               <span>{CATS.find(x=>x.id===expCat)?.ico}</span>
               <span style={{color:CATS.find(x=>x.id===expCat)?.c||"#67e8f9"}}>{CATS.find(x=>x.id===expCat)?.l}</span></span>}
             {fPlat&&<span style={{padding:"6px 14px",borderRadius:20,background:(PLATS.find(p=>p.id===fPlat)?.c||"#67e8f9")+"18",fontSize:13,fontWeight:700,color:PLATS.find(p=>p.id===fPlat)?.c||"#67e8f9"}}>{PLATS.find(p=>p.id===fPlat)?.n}</span>}
             {/* Sort */}
             <div style={{marginLeft:"auto",display:"flex",gap:4}}>
-              {SORTS.map(s=><button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,expCat,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.12)":"rgba(255,255,255,.02)",color:fSort===s.v?"#67e8f9":"rgba(255,255,255,.2)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div>
+              {SORTS.map(s=><button key={s.v} onClick={()=>{setFSort(s.v);setExpPage(1);loadExplore(1,expCat,fPlat,s.v)}} style={{padding:"5px 10px",borderRadius:8,border:"none",background:fSort===s.v?"rgba(103,232,249,.12)":(lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)"),color:fSort===s.v?"#67e8f9":(lt?"#94a3b8":"rgba(255,255,255,.2)"),fontSize:10,fontWeight:700,cursor:"pointer"}}>{s.l}</button>)}</div>
           </div>
 
           {/* Quick-switch categories */}
           <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:8,marginBottom:12}}>
-            {CATS.map(cat=><button key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,fPlat,fSort)}} style={{padding:"5px 12px",borderRadius:8,border:"none",background:expCat===cat.id?(cat.c+"18"):"rgba(255,255,255,.02)",color:expCat===cat.id?cat.c:"rgba(255,255,255,.2)",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{cat.ico} {cat.l}</button>)}</div>
+            {CATS.map(cat=><button key={cat.id} onClick={()=>{setExpCat(cat.id);setExpPage(1);loadExplore(1,cat.id,fPlat,fSort)}} style={{padding:"5px 12px",borderRadius:8,border:"none",background:expCat===cat.id?(cat.c+"18"):(lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)"),color:expCat===cat.id?cat.c:(lt?"#94a3b8":"rgba(255,255,255,.2)"),fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{cat.ico} {cat.l}</button>)}</div>
 
           {/* Platform filter chips */}
           <div className="hs" style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:8,marginBottom:16}}>
-            <button onClick={()=>{setFPlat(null);setExpPage(1);loadExplore(1,expCat,null,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:!fPlat?"rgba(103,232,249,.12)":"rgba(255,255,255,.02)",color:!fPlat?"#67e8f9":"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>All Platforms</button>
-            {PLATS.map(p=><button key={p.id} onClick={()=>{setFPlat(fPlat===p.id?null:p.id);setExpPage(1);loadExplore(1,expCat,fPlat===p.id?null:p.id,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":"rgba(255,255,255,.02)",color:fPlat===p.id?p.c:"rgba(255,255,255,.2)",fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{p.n}</button>)}</div>
+            <button onClick={()=>{setFPlat(null);setExpPage(1);loadExplore(1,expCat,null,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:!fPlat?"rgba(103,232,249,.12)":(lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)"),color:!fPlat?"#67e8f9":(lt?"#94a3b8":"rgba(255,255,255,.2)"),fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>All Platforms</button>
+            {PLATS.map(p=><button key={p.id} onClick={()=>{setFPlat(fPlat===p.id?null:p.id);setExpPage(1);loadExplore(1,expCat,fPlat===p.id?null:p.id,fSort)}} style={{padding:"4px 10px",borderRadius:8,border:"none",background:fPlat===p.id?p.c+"22":(lt?"rgba(0,0,0,.02)":"rgba(255,255,255,.02)"),color:fPlat===p.id?p.c:(lt?"#94a3b8":"rgba(255,255,255,.2)"),fontSize:9,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{p.n}</button>)}</div>
 
           {/* Results */}
-          {expGames.length>0&&<div style={{fontSize:11,color:"rgba(255,255,255,.15)",marginBottom:10}}>{expGames.length}+ results</div>}
+          {expGames.length>0&&<div style={{fontSize:11,color:lt?"#94a3b8":"rgba(255,255,255,.15)",marginBottom:10}}>{expGames.length}+ results</div>}
           <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(150px,1fr))",gap:m?8:14}}>
             {expGames.map((g,i)=><GC key={g.id} game={g} delay={Math.min(i,16)*8} onClick={setSel} mobile={m} ud={ud}/>)}</div>
           {expLd&&<Loader/>}
           {expGames.length>0&&!expLd&&<div style={{textAlign:"center",marginTop:24,marginBottom:20}}>
             <button onClick={()=>{const np=expPage+1;setExpPage(np);loadExplore(np)}} style={{padding:"14px 40px",borderRadius:16,border:"none",background:"linear-gradient(135deg,rgba(103,232,249,.08),rgba(129,140,248,.08))",color:"#67e8f9",fontSize:14,fontWeight:700,cursor:"pointer"}}>Load More</button></div>}
-          {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>No games found</p>}
+          {expGames.length===0&&!expLd&&<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No games found</p>}
         </div>}
       </div>}
 
@@ -1324,13 +1324,13 @@ export default function App(){
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Library</h2>
         {lib.length?<><div className="hs" style={{display:"flex",gap:5,marginBottom:14,overflowX:"auto"}}>
           {[["all","All"],["playing","Playing"],["completed","Completed"],["backlog","Backlog"],["wishlist","Wishlist"],["dropped","Dropped"]].map(([k,l])=>
-            <button key={k} onClick={()=>setLf(k)} style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",border:"none",background:lf===k?"rgba(103,232,249,.12)":"rgba(255,255,255,.04)",color:lf===k?"#67e8f9":"rgba(255,255,255,.25)"}}>{l} {k==="all"?lib.length:lib.filter(g=>ud[g.id]?.status===k).length}</button>)}</div>
+            <button key={k} onClick={()=>setLf(k)} style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",border:"none",background:lf===k?"rgba(103,232,249,.12)":(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"),color:lf===k?"#67e8f9":(lt?"#64748b":"rgba(255,255,255,.25)")}}>{l} {k==="all"?lib.length:lib.filter(g=>ud[g.id]?.status===k).length}</button>)}</div>
           <div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(140px,1fr))",gap:m?8:12}}>{flib.map((g,i)=><GC key={g.id} game={g} delay={i*12} onClick={setSel} mobile={m} ud={ud}/>)}</div>
-        </>:<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>Search and add games</p>}</div>}
+        </>:<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>Search and add games</p>}</div>}
 
       {/* VIEW OTHER USER — full page */}
       {pg==="viewuser"&&viewUID&&<div style={{animation:"fadeIn .15s"}}>
-        <button onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 12px",borderRadius:10,...glass,color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer",marginBottom:12,border:"none"}}>← Back</button>
+        <button onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 12px",borderRadius:10,...(lt?glassL:glass),color:lt?"#334155":"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer",marginBottom:12,border:"none"}}>← Back</button>
         <ProfilePage viewId={viewUID} me={user} m={m} ud={ud} goUser={goUser} avV={avV} allGames={all} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} setSel={setSel} onCompare={loadCompare} lt={lt}/>
       </div>}
 
@@ -1356,47 +1356,47 @@ export default function App(){
 
           return<><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:m?8:12,marginBottom:24}}>
             {[{l:"Games",v:lib.length,c:"#67e8f9"},{l:"Done",v:bs("completed"),c:"#6ee7b7"},{l:"Playing",v:bs("playing"),c:"#c4b5fd"},{l:"Avg ★",v:av,c:"#fde68a"}].map((s,i)=>
-              <div key={i} style={{...glass,padding:m?12:16,borderRadius:16,textAlign:"center"}}>
-                <div style={{fontSize:m?20:26,fontWeight:900,color:s.c}}>{s.v}</div><div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginTop:2}}>{s.l}</div></div>)}</div>
+              <div key={i} style={{...(lt?glassL:glass),padding:m?12:16,borderRadius:16,textAlign:"center"}}>
+                <div style={{fontSize:m?20:26,fontWeight:900,color:s.c}}>{s.v}</div><div style={{fontSize:10,color:lt?"#64748b":"rgba(255,255,255,.25)",marginTop:2}}>{s.l}</div></div>)}</div>
 
             {/* Status bars */}
             <div style={{marginBottom:24}}>
               <div className="sec-title">STATUS BREAKDOWN</div>
               {Object.entries(SC).map(([k,c])=>{const cn=bs(k),mx=lib.length||1;
                 return<div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-                  <span style={{width:70,fontSize:12,color:"rgba(255,255,255,.3)",fontWeight:600,textAlign:"right"}}>{c.l}</span>
-                  <div style={{flex:1,height:20,background:"rgba(255,255,255,.03)",borderRadius:10,overflow:"hidden"}}>
+                  <span style={{width:70,fontSize:12,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:600,textAlign:"right"}}>{c.l}</span>
+                  <div style={{flex:1,height:20,background:lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)",borderRadius:10,overflow:"hidden"}}>
                     <div style={{height:"100%",width:cn?(cn/mx*100)+"%":"0%",background:c.c,borderRadius:10,opacity:.4,transition:"width .6s"}}></div></div>
-                  <span style={{fontSize:11,color:"rgba(255,255,255,.2)",width:20}}>{cn}</span></div>})}</div>
+                  <span style={{fontSize:11,color:lt?"#94a3b8":"rgba(255,255,255,.2)",width:20}}>{cn}</span></div>})}</div>
 
             {/* Rating Distribution */}
             {rt.length>0&&<div style={{marginBottom:24}}>
               <div className="sec-title">RATING DISTRIBUTION</div>
               <div style={{display:"flex",alignItems:"flex-end",gap:m?3:4,height:80}}>
                 {rDist.map((c,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                  <span style={{fontSize:8,color:"rgba(255,255,255,.2)"}}>{c||""}</span>
-                  <div style={{width:"100%",height:c?(c/maxRD*60)+8:4,background:c?"linear-gradient(to top,#67e8f9,#818cf8)":"rgba(255,255,255,.03)",borderRadius:4,opacity:c?.5:.2,transition:"height .4s"}}/>
-                  <span style={{fontSize:7,color:"rgba(255,255,255,.15)"}}>{(i*0.5+0.5).toFixed(1)}</span></div>)}</div></div>}
+                  <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>{c||""}</span>
+                  <div style={{width:"100%",height:c?(c/maxRD*60)+8:4,background:c?"linear-gradient(to top,#67e8f9,#818cf8)":(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.03)"),borderRadius:4,opacity:c?.5:.2,transition:"height .4s"}}/>
+                  <span style={{fontSize:7,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{(i*0.5+0.5).toFixed(1)}</span></div>)}</div></div>}
 
             {/* Genre Breakdown */}
             {topGenres.length>0&&<div style={{marginBottom:24}}>
               <div className="sec-title">TOP GENRES</div>
               <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(3,1fr)",gap:8}}>
                 {topGenres.map(([name,count],i)=>{const colors=["#67e8f9","#818cf8","#c4b5fd","#6ee7b7","#fde68a","#fda4af"];
-                  return<div key={name} style={{...glass,padding:"12px 14px",borderRadius:12,display:"flex",alignItems:"center",gap:10}}>
+                  return<div key={name} style={{...(lt?glassL:glass),padding:"12px 14px",borderRadius:12,display:"flex",alignItems:"center",gap:10}}>
                     <div style={{width:32,height:32,borderRadius:8,background:colors[i%6]+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,color:colors[i%6]}}>{count}</div>
-                    <div><div style={{fontSize:12,fontWeight:700}}>{name}</div><div style={{fontSize:9,color:"rgba(255,255,255,.15)"}}>{Math.round(count/lib.length*100)}% of library</div></div></div>})}</div></div>}
+                    <div><div style={{fontSize:12,fontWeight:700}}>{name}</div><div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{Math.round(count/lib.length*100)}% of library</div></div></div>})}</div></div>}
 
             {/* Monthly Activity */}
             {monthArr.length>0&&<div>
               <div className="sec-title">MONTHLY ACTIVITY</div>
               <div style={{display:"flex",alignItems:"flex-end",gap:m?6:10,height:80}}>
                 {monthArr.map(([month,count])=><div key={month} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                  <span style={{fontSize:8,color:"rgba(255,255,255,.2)"}}>{count||""}</span>
-                  <div style={{width:"100%",height:count?(count/maxM*60)+6:4,background:count?"linear-gradient(to top,#6ee7b7,#67e8f9)":"rgba(255,255,255,.03)",borderRadius:4,opacity:count?.5:.2,transition:"height .4s"}}/>
-                  <span style={{fontSize:7,color:"rgba(255,255,255,.15)"}}>{new Date(month+"-01").toLocaleString("en",{month:"short"})}</span></div>)}</div></div>}
+                  <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.2)"}}>{count||""}</span>
+                  <div style={{width:"100%",height:count?(count/maxM*60)+6:4,background:count?"linear-gradient(to top,#6ee7b7,#67e8f9)":(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.03)"),borderRadius:4,opacity:count?.5:.2,transition:"height .4s"}}/>
+                  <span style={{fontSize:7,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{new Date(month+"-01").toLocaleString("en",{month:"short"})}</span></div>)}</div></div>}
           </>
-        })():<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>Add games to see stats</p>}</div>}
+        })():<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>Add games to see stats</p>}</div>}
     </main>
 
     {m&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:90,background:lt?"rgba(248,250,252,.95)":"rgba(15,12,25,.92)",backdropFilter:"blur(16px)",borderTop:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",display:"flex",paddingTop:5,paddingBottom:"max(env(safe-area-inset-bottom,12px),12px)"}}>
@@ -1410,12 +1410,12 @@ export default function App(){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <h3 style={{fontSize:18,fontWeight:900}}>Notifications</h3>
           <button onClick={()=>setShowNotifs(false)} style={{background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.06)",border:"none",color:lt?"#475569":"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer",padding:"6px 10px",borderRadius:8}}>✕</button></div>
-        {notifs.length?notifs.slice(0,20).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.03)",opacity:n.read?.5:1}}>
+        {notifs.length?notifs.slice(0,20).map(n=><div key={n.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.03)",opacity:n.read?.5:1}}>
           {n.from?.avatar_url?<Av url={n.from.avatar_url} name={n.from.display_name} size={28} v={avV}/>
           :<span style={{fontSize:18,flexShrink:0}}>{n.type==="follow"?"👥":n.type==="like"?"❤️":n.type==="comment"?"💬":"📌"}</span>}
-          <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13}}>{n.from?.display_name||""}</span> <span style={{color:"rgba(255,255,255,.4)",fontSize:12}}>{n.message||n.type}</span>{n.game_title&&<div style={{color:"#67e8f9",fontSize:11,marginTop:2}}>{n.game_title}</div>}</div>
-          <span style={{fontSize:10,color:"rgba(255,255,255,.1)",flexShrink:0}}>{tA(n.created_at)}</span></div>)
-        :<p style={{color:"rgba(255,255,255,.15)",fontSize:13,textAlign:"center",padding:30}}>No notifications yet</p>}
+          <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13}}>{n.from?.display_name||""}</span> <span style={{color:lt?"#475569":"rgba(255,255,255,.4)",fontSize:12}}>{n.message||n.type}</span>{n.game_title&&<div style={{color:"#67e8f9",fontSize:11,marginTop:2}}>{n.game_title}</div>}</div>
+          <span style={{fontSize:10,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",flexShrink:0}}>{tA(n.created_at)}</span></div>)
+        :<p style={{color:lt?"#94a3b8":"rgba(255,255,255,.15)",fontSize:13,textAlign:"center",padding:30}}>No notifications yet</p>}
       </div></div>}
 
     {/* Compare Modal */}
@@ -1423,21 +1423,21 @@ export default function App(){
       <div style={{background:lt?"#fff":"#16132a",width:"100%",maxWidth:600,maxHeight:"85vh",borderRadius:24,overflow:"auto",border:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",padding:m?16:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <h3 style={{fontFamily:"'Outfit'",fontSize:20,fontWeight:900}}>🔄 Library Comparison</h3>
-          <button onClick={()=>{setCompareData(null);setCompareUID(null)}} style={{width:32,height:32,borderRadius:10,...glass,border:"none",color:"#fff",fontSize:14,cursor:"pointer"}}>✕</button></div>
+          <button onClick={()=>{setCompareData(null);setCompareUID(null)}} style={{width:32,height:32,borderRadius:10,...(lt?glassL:glass),border:"none",color:lt?"#1e293b":"#fff",fontSize:14,cursor:"pointer"}}>✕</button></div>
         <div style={{display:"flex",gap:16,marginBottom:20,justifyContent:"center"}}>
-          <div style={{textAlign:"center"}}><Av url={prof?.avatar_url} name={prof?.display_name} size={48} v={avV}/><div style={{fontSize:12,fontWeight:700,marginTop:4}}>{prof?.display_name}</div><div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>{Object.keys(ud).length} games</div></div>
-          <div style={{display:"flex",alignItems:"center",fontSize:20,color:"rgba(255,255,255,.15)"}}>VS</div>
-          <div style={{textAlign:"center"}}><Av url={compareData.them?.avatar_url} name={compareData.them?.display_name} size={48} v={avV}/><div style={{fontSize:12,fontWeight:700,marginTop:4}}>{compareData.them?.display_name}</div><div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>{compareData.theirGames.length} games</div></div></div>
+          <div style={{textAlign:"center"}}><Av url={prof?.avatar_url} name={prof?.display_name} size={48} v={avV}/><div style={{fontSize:12,fontWeight:700,marginTop:4}}>{prof?.display_name}</div><div style={{fontSize:10,color:lt?"#64748b":"rgba(255,255,255,.3)"}}>{Object.keys(ud).length} games</div></div>
+          <div style={{display:"flex",alignItems:"center",fontSize:20,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>VS</div>
+          <div style={{textAlign:"center"}}><Av url={compareData.them?.avatar_url} name={compareData.them?.display_name} size={48} v={avV}/><div style={{fontSize:12,fontWeight:700,marginTop:4}}>{compareData.them?.display_name}</div><div style={{fontSize:10,color:lt?"#64748b":"rgba(255,255,255,.3)"}}>{compareData.theirGames.length} games</div></div></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
-          <div style={{...glass,padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{compareData.both.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>BOTH PLAYED</div></div>
-          <div style={{...glass,padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{compareData.onlyMe.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>ONLY YOU</div></div>
-          <div style={{...glass,padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#818cf8"}}>{compareData.onlyThem.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>ONLY THEM</div></div></div>
+          <div style={{...(lt?glassL:glass),padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{compareData.both.length}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>BOTH PLAYED</div></div>
+          <div style={{...(lt?glassL:glass),padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{compareData.onlyMe.length}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>ONLY YOU</div></div>
+          <div style={{...(lt?glassL:glass),padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#818cf8"}}>{compareData.onlyThem.length}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>ONLY THEM</div></div></div>
         {compareData.both.length>0&&<><div className="sec-title" style={{fontSize:10}}>GAMES IN COMMON</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{compareData.both.slice(0,20).map(id=>{const g=ud[id];return g?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(110,231,183,.08)",border:"1px solid rgba(110,231,183,.15)",fontSize:10,fontWeight:600,color:"#6ee7b7"}}>{g.title}</div>:null})}</div></>}
         {compareData.onlyMe.length>0&&<><div className="sec-title" style={{fontSize:10}}>RECOMMEND TO THEM</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{compareData.onlyMe.slice(0,15).map(id=>{const g=ud[id];return g?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(103,232,249,.06)",fontSize:10,fontWeight:600,color:"rgba(255,255,255,.4)"}}>{g.title}</div>:null})}</div></>}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{compareData.onlyMe.slice(0,15).map(id=>{const g=ud[id];return g?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(103,232,249,.06)",fontSize:10,fontWeight:600,color:lt?"#475569":"rgba(255,255,255,.4)"}}>{g.title}</div>:null})}</div></>}
         {compareData.onlyThem.length>0&&<><div className="sec-title" style={{fontSize:10}}>THEY RECOMMEND</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{compareData.onlyThem.slice(0,15).map(id=>{const tg=compareData.theirGames.find(g=>g.game_id===id);return tg?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(129,140,248,.06)",fontSize:10,fontWeight:600,color:"rgba(255,255,255,.4)"}}>{tg.game_title}</div>:null})}</div></>}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{compareData.onlyThem.slice(0,15).map(id=>{const tg=compareData.theirGames.find(g=>g.game_id===id);return tg?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(129,140,248,.06)",fontSize:10,fontWeight:600,color:lt?"#475569":"rgba(255,255,255,.4)"}}>{tg.game_title}</div>:null})}</div></>}
       </div></div>}
 
     {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} userProf={prof} lt={lt}/>}
