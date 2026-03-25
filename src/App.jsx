@@ -5,6 +5,7 @@ const AK="33d378268c5d452ab1f3a9cb04c89f38",AP="https://api.rawg.io/api",SU="htt
 const PP={1:{n:"PC",c:"#67e8f9"},2:{n:"PS",c:"#818cf8"},3:{n:"Xbox",c:"#6ee7b7"},7:{n:"Switch",c:"#fda4af"}};
 const SC={completed:{c:"#6ee7b7",l:"Completed"},playing:{c:"#67e8f9",l:"Playing"},wishlist:{c:"#fde68a",l:"Wishlist"},dropped:{c:"#fda4af",l:"Dropped"},backlog:{c:"#c4b5fd",l:"Backlog"}};
 const glass={background:"rgba(255,255,255,.03)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,.06)",borderRadius:16};
+const glassL={background:"rgba(0,0,0,.03)",backdropFilter:"blur(12px)",border:"1px solid rgba(0,0,0,.06)",borderRadius:16};
 
 const fg=async(p="")=>{try{return(await(await fetch(`${AP}/games?key=${AK}&page_size=20${p}`)).json()).results||[]}catch{return[]}};
 const fgd=async id=>{try{return await(await fetch(`${AP}/games/${id}?key=${AK}`)).json()}catch{return null}};
@@ -418,7 +419,7 @@ const RevCard=({r,me,onClose,goUser,avV})=>{
   </div>};
 
 /* Game Detail */
-const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,reloadLists,userProf})=>{
+const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,reloadLists,userProf,lt})=>{
   const[det,setDet]=useState(null);const[ldg,setLdg]=useState(true);const d=ud[g.id]||{};
   const[mr,setMr]=useState(d.myRating||0);const[st,setSt]=useState(d.status||"");const[tab,setTab]=useState("about");
   const[rvs,setRvs]=useState([]);const[rt,setRt]=useState("");const[rr,setRr]=useState(0);const[posting,setPosting]=useState(false);const[showLists,setShowLists]=useState(false);const[addedList,setAddedList]=useState("");
@@ -452,18 +453,17 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
   const handleAddToList=async(listId)=>{const list=myLists?.find(l=>l.id===listId);await addGameToList(listId,g.id);setAddedList(listId);reloadLists?.();await postAct(me.id,"added to list",{id:g.id,title:g.t,img:g.img},{text:list?.title||"list"});setTimeout(()=>setAddedList(""),2000)};
   const subRev=async()=>{if(!me||!rt.trim())return;setPosting(true);await postRev(me.id,g,rr,rt);setRt("");setRr(0);setRvs(await loadGR(g.id));setPosting(false);refresh?.()};
 
-  return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:m?"flex-end":"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?0:16}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"#16132a",width:"100%",maxWidth:m?"100%":660,maxHeight:m?"93vh":"88vh",borderRadius:m?"24px 24px 0 0":24,overflow:"auto",border:"1px solid rgba(255,255,255,.06)"}}>
-      {/* Mobile: drag bar + close button */}
-      {m&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 0"}}>
-        <button onClick={onClose} style={{padding:"6px 14px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer"}}>← Back</button>
-        <div style={{width:32,height:4,borderRadius:2,background:"rgba(255,255,255,.1)"}}/>
-        <button onClick={onClose} style={{padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer"}}>✕</button>
-      </div>}
-      <div style={{position:"relative",height:m?160:240,overflow:"hidden"}}><img src={g.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,#16132a 0%,transparent 100%)"}}/>
-        {!m&&<button onClick={onClose} style={{position:"absolute",top:14,right:14,width:34,height:34,borderRadius:12,...glass,background:"rgba(15,12,25,.6)",border:"none",color:"#fff",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
-        <div style={{position:"absolute",bottom:16,left:m?16:24}}><h2 style={{fontFamily:"'Outfit'",fontSize:m?24:32,fontWeight:900}}>{g.t}</h2>
+  return<div style={{position:"fixed",inset:0,zIndex:1000,background:lt?"#f8fafc":"#0f0c19",overflow:"auto",animation:"fadeIn .15s"}}>
+    <div style={{maxWidth:720,margin:"0 auto",paddingBottom:40}}>
+      {/* Top bar */}
+      <div style={{position:"sticky",top:0,zIndex:10,display:"flex",alignItems:"center",justifyContent:"space-between",padding:m?"10px 14px":"12px 20px",background:lt?"rgba(248,250,252,.9)":"rgba(15,12,25,.85)",backdropFilter:"blur(16px)",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)"}}>
+        <button onClick={onClose} style={{padding:"6px 14px",borderRadius:10,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.06)",border:"none",color:lt?"#475569":"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer"}}>← Back</button>
+        <span style={{fontSize:13,fontWeight:700,color:lt?"#94a3b8":"rgba(255,255,255,.2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{g.t}</span>
+        <button onClick={onClose} style={{padding:"6px 10px",borderRadius:10,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.06)",border:"none",color:lt?"#475569":"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer"}}>✕</button></div>
+      {/* Hero image */}
+      <div style={{position:"relative",height:m?200:320,overflow:"hidden"}}><img src={g.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+        <div style={{position:"absolute",inset:0,background:lt?"linear-gradient(to top,#f8fafc 0%,transparent 100%)":"linear-gradient(to top,#0f0c19 0%,transparent 100%)"}}/>
+        <div style={{position:"absolute",bottom:m?16:28,left:m?16:28}}><h2 style={{fontFamily:"'Outfit'",fontSize:m?26:38,fontWeight:900,color:"#fff"}}>{g.t}</h2>
           <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
             <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{g.y}{g.genre?" · "+g.genre:""}</span>
             {g.pf?.length>0&&<><span style={{color:"rgba(255,255,255,.1)"}}>·</span><div style={{display:"flex",gap:4}}>
@@ -538,7 +538,7 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
       </div></div></div>};
 
 /* ═══ PROFILE PAGE — Letterboxd style with tabs ═══ */
-const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,myLists,reloadLists,setSel,onBanner})=>{
+const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,myLists,reloadLists,setSel,onBanner,onCompare,lt})=>{
   const[p,setP]=useState(null);const[fc,setFc]=useState({followers:0,following:0});const[gs,setGs]=useState([]);const[acts,setActs]=useState([]);const[revs,setRevs]=useState([]);const[isF,setIsF]=useState(false);const[ld,setLd]=useState(true);const[flM,setFlM]=useState(null);
   const[favs,setFavs]=useState([]);const[editListId,setEditListId]=useState(null);const[editListName,setEditListName]=useState("");const[nLN,setNLN]=useState("");
   const[tab,setTab]=useState("profile");const[editRevId,setEditRevId]=useState(null);const[editRevText,setEditRevText]=useState("");const[editRevRating,setEditRevRating]=useState(0);
@@ -546,6 +546,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const[dResults,setDResults]=useState([]);const[dSelGame,setDSelGame]=useState(null);
   const[bannerPreview,setBannerPreview]=useState(null);const[bannerFile,setBannerFile]=useState(null);const[bannerSaving,setBannerSaving]=useState(false);
   const[libF,setLibF]=useState("all");
+  const[steamAchs,setSteamAchs]=useState([]);
   const isSelf=me?.id===viewId;const bannerRef=useRef();
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false)})()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name});await sendNotif(viewId,me.id,"follow",`${me.user_metadata?.display_name||"Someone"} followed you`)}};
@@ -590,11 +591,12 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
           <div onClick={()=>setFlM("followers")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.followers}</span> <span style={{color:"#67e8f9",fontSize:11}}>followers</span></div>
           <div onClick={()=>setFlM("following")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.following}</span> <span style={{color:"#67e8f9",fontSize:11}}>following</span></div></div>
         <div style={{display:"flex",gap:5,marginTop:8,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
-          {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
+          {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...glass,color:lt?"#1e293b":"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
             <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
             <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button>
             <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
           :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?"1px solid rgba(255,255,255,.1)":"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?"rgba(255,255,255,.4)":"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
+            {onCompare&&<button onClick={()=>onCompare(viewId)} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#6ee7b7",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Compare</button>}
             <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...glass,color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button></>}
         </div></div></div>
 
@@ -755,6 +757,9 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
 /* ═══ MAIN ═══ */
 export default function App(){
   const m=useM();const[pg,setPgRaw]=useState("home");const[sel,setSel]=useState(null);const[q,setQ]=useState("");const[qO,setQO]=useState(false);
+  const[theme,setTheme]=useState(()=>localStorage.getItem("gbx-theme")||"dark");
+  const toggleTheme=()=>{const t=theme==="dark"?"light":"dark";setTheme(t);localStorage.setItem("gbx-theme",t)};
+  const lt=theme==="light";// light theme flag
   const[ud,setUd]=useState({});const[user,setUser]=useState(null);const[prof,setProf]=useState(null);const[avV,setAvV]=useState(Date.now());const[fc,setFc]=useState({followers:0,following:0});
   const[sa,setSa]=useState(false);const[ep,setEp]=useState(false);const[viewUID,setViewUID]=useState(null);const[flM,setFlM]=useState(null);const[steamModal,setSteamModal]=useState(false);
   const[notifs,setNotifs]=useState([]);const[nCount,setNCount]=useState(0);const[showNotifs,setShowNotifs]=useState(false);
@@ -765,6 +770,7 @@ export default function App(){
   const[expGames,setExpGames]=useState([]);const[expLd,setExpLd]=useState(false);const[expPage,setExpPage]=useState(1);
   const[fPlat,setFPlat]=useState(null);const[fSort,setFSort]=useState("-rating");
   const[heroIdx,setHeroIdx]=useState(0);const[friendsPlaying,setFriendsPlaying]=useState([]);
+  const[compareUID,setCompareUID]=useState(null);const[compareData,setCompareData]=useState(null);
   const stt=useRef(null);const skipPush=useRef(false);const heroTimer=useRef(null);
 
   // Browser history — wrap setPg to push state
@@ -774,8 +780,19 @@ export default function App(){
   // Handle browser back button
   useEffect(()=>{
     window.history.replaceState({pg:"home",viewUID:null},"","");
-    const onPop=(e)=>{const s=e.state;skipPush.current=true;if(s){setPgRaw(s.pg||"home");setViewUID(s.viewUID||null);setSel(null);setShowNotifs(false)}else{setPgRaw("home");setViewUID(null);setSel(null)}};
+    const onPop=(e)=>{const s=e.state;skipPush.current=true;if(s){setPgRaw(s.pg||"home");setViewUID(s.viewUID||null);if(s.pg!=="game")setSel(null);setShowNotifs(false)}else{setPgRaw("home");setViewUID(null);setSel(null)}};
     window.addEventListener("popstate",onPop);return()=>window.removeEventListener("popstate",onPop)},[]);
+
+  // Compare libraries
+  const loadCompare=async(uid)=>{setCompareUID(uid);
+    const{data:theirGames}=await supabase.from("user_games").select("*").eq("user_id",uid);
+    const{data:theirProf}=await supabase.from("profiles").select("*").eq("id",uid).single();
+    const myGames=Object.keys(ud).map(id=>parseInt(id));
+    const theirIds=(theirGames||[]).map(g=>g.game_id);
+    const both=myGames.filter(id=>theirIds.includes(id));
+    const onlyMe=myGames.filter(id=>!theirIds.includes(id));
+    const onlyThem=theirIds.filter(id=>!myGames.includes(id));
+    setCompareData({them:theirProf,theirGames:theirGames||[],both,onlyMe,onlyThem})};
 
   const rf=()=>{if(user){loadFeed(user.id).then(setFeed);loadRR(user.id).then(setRRev)}else{loadAllFeed().then(setFeed);loadRR().then(setRRev)}};
   useEffect(()=>{if(pg==="explore"&&expGames.length===0)loadExplore(1)},[pg]);
@@ -861,7 +878,7 @@ export default function App(){
     return all.filter(g=>!ud[g.id]&&g.genre&&topGenres.some(tg=>g.genre.includes(tg))&&g.r>=4).slice(0,m?6:10)};
   const recommended=getRecommended();
 
-  return<div className="gbx" style={{fontFamily:"'DM Sans','Outfit',system-ui,sans-serif",color:"#fff",minHeight:"100vh"}}>
+  return<div className={lt?"gbx-light":"gbx"} style={{fontFamily:"'DM Sans','Outfit',system-ui,sans-serif",color:lt?"#1e293b":"#fff",minHeight:"100vh",transition:"background .3s,color .3s"}}>
     <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Outfit:wght@100..900&display=swap');
       *{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
       @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -869,7 +886,10 @@ export default function App(){
       body{margin:0;overflow-x:hidden}img{-webkit-user-drag:none}.hs::-webkit-scrollbar{display:none}.hs{-ms-overflow-style:none;scrollbar-width:none}
       @media(max-width:767px){*{-webkit-tap-highlight-color:transparent}}input::placeholder,textarea::placeholder{color:rgba(255,255,255,.15)}
       .gbx{background:#0f0c19;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.06),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent),radial-gradient(ellipse 60% 50% at 50% 100%,rgba(196,181,253,.04),transparent);background-attachment:fixed}
-      .sec-title{font-size:13px;font-weight:800;color:rgba(255,255,255,.25);letter-spacing:.12em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+      .gbx-light{background:#f8fafc;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.08),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent)}
+      .gbx-light input,.gbx-light textarea{color:#1e293b!important;background:rgba(0,0,0,.03)!important;border-color:rgba(0,0,0,.1)!important}
+      .gbx-light input::placeholder,.gbx-light textarea::placeholder{color:rgba(0,0,0,.3)!important}
+      .sec-title{font-size:13px;font-weight:800;color:${lt?"rgba(0,0,0,.35)":"rgba(255,255,255,.25)"};letter-spacing:.12em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
       .sec-title::before{content:'';width:16px;height:2px;background:linear-gradient(90deg,#67e8f9,#818cf8);border-radius:1px}`}</style>
 
     {sa&&<Auth onClose={()=>setSa(false)} onAuth={u=>{setUser(u);setSa(false)}}/>}
@@ -877,7 +897,7 @@ export default function App(){
     {steamModal&&<SteamModal onClose={()=>setSteamModal(false)} userId={user?.id} onDone={async()=>{await lcl(user.id).then(setUd);await reloadProf()}}/>}
 
     {/* Nav */}
-    {!m&&<nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(15,12,25,.8)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,.04)",padding:"0 28px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+    {!m&&<nav style={{position:"sticky",top:0,zIndex:100,background:lt?"rgba(248,250,252,.85)":"rgba(15,12,25,.8)",backdropFilter:"blur(20px)",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",padding:"0 28px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:24}}>
         <span onClick={()=>{setPg("home");setQ("");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
           <svg width="32" height="32" viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/><polygon points="22,4 18,11 26,11" fill="#0f0c19" opacity=".2"/><polygon points="22,40 18,33 26,33" fill="#0f0c19" opacity=".2"/><polygon points="4,22 11,18 11,26" fill="#0f0c19" opacity=".2"/><polygon points="40,22 33,18 33,26" fill="#0f0c19" opacity=".2"/></svg>
@@ -901,9 +921,11 @@ export default function App(){
           </div>}
         </div>}
         {user?<Av url={prof?.avatar_url} name={dn} size={30} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>
-          :<button onClick={()=>setSa(true)} style={{padding:"7px 18px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Sign In</button>}</div></nav>}
+          :<button onClick={()=>setSa(true)} style={{padding:"7px 18px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>Sign In</button>}
+        <span onClick={toggleTheme} style={{fontSize:16,cursor:"pointer",color:lt?"#475569":"rgba(255,255,255,.3)"}} title={lt?"Dark mode":"Light mode"}>{lt?"🌙":"☀️"}</span>
+        </div></nav>}
 
-    {m&&<div style={{position:"sticky",top:0,zIndex:100,background:"rgba(15,12,25,.85)",backdropFilter:"blur(20px)",padding:"0 14px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+    {m&&<div style={{position:"sticky",top:0,zIndex:100,background:lt?"rgba(248,250,252,.9)":"rgba(15,12,25,.85)",backdropFilter:"blur(20px)",padding:"0 14px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:lt?"1px solid rgba(0,0,0,.04)":"1px solid rgba(255,255,255,.04)"}}>
       {qO?<div style={{flex:1,display:"flex",alignItems:"center",gap:6}}>
         <input autoFocus placeholder="Search..." value={q} onChange={e=>{setQ(e.target.value);if(e.target.value){setPg("search");setViewUID(null)}}}
           style={{flex:1,padding:"8px 14px",borderRadius:14,...glass,color:"#fff",fontSize:14,outline:"none"}}/>
@@ -913,7 +935,8 @@ export default function App(){
           <span style={{fontFamily:"'Outfit'",fontSize:15,fontWeight:900,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GameBoxd</span></span>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span onClick={()=>{setQO(true);setPg("search");setViewUID(null)}} style={{fontSize:15,cursor:"pointer",color:"rgba(255,255,255,.3)"}}>🔍</span>
-          {user&&<span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:15,cursor:"pointer",color:nCount?"#fde68a":"rgba(255,255,255,.3)",position:"relative"}}>🔔{nCount>0&&<span style={{position:"absolute",top:-4,right:-6,width:12,height:12,borderRadius:6,background:"#f87171",fontSize:7,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{nCount}</span>}</span>}
+          {user&&<span onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs){markRead(user.id);setNCount(0)}}} style={{fontSize:15,cursor:"pointer",color:nCount?"#fde68a":lt?"#64748b":"rgba(255,255,255,.3)",position:"relative"}}>🔔{nCount>0&&<span style={{position:"absolute",top:-4,right:-6,width:12,height:12,borderRadius:6,background:"#f87171",fontSize:7,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{nCount}</span>}</span>}
+          <span onClick={toggleTheme} style={{fontSize:14,cursor:"pointer"}}>{lt?"🌙":"☀️"}</span>
           {user?<Av url={prof?.avatar_url} name={dn} size={26} onClick={()=>{setPg("profile");setViewUID(null)}} v={avV}/>
             :<span onClick={()=>setSa(true)} style={{fontSize:12,background:"linear-gradient(135deg,#67e8f9,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:800,cursor:"pointer"}}>Sign In</span>}</div></>}</div>}
 
@@ -1227,12 +1250,12 @@ export default function App(){
       {/* VIEW OTHER USER — full page */}
       {pg==="viewuser"&&viewUID&&<div style={{animation:"fadeIn .15s"}}>
         <button onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 12px",borderRadius:10,...glass,color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer",marginBottom:12,border:"none"}}>← Back</button>
-        <ProfilePage viewId={viewUID} me={user} m={m} ud={ud} goUser={goUser} avV={avV} allGames={all} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} setSel={setSel}/>
+        <ProfilePage viewId={viewUID} me={user} m={m} ud={ud} goUser={goUser} avV={avV} allGames={all} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} setSel={setSel} onCompare={loadCompare} lt={lt}/>
       </div>}
 
       {/* MY PROFILE — full page */}
       {pg==="profile"&&user&&<div style={{animation:"fadeIn .15s"}}>
-        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all} myLists={myL} reloadLists={()=>loadLists(user.id).then(setMyL)} setSel={setSel} onBanner={reloadProf}/>
+        <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all} myLists={myL} reloadLists={()=>loadLists(user.id).then(setMyL)} setSel={setSel} onBanner={reloadProf} lt={lt}/>
       </div>}
 
       {/* STATS */}
@@ -1295,7 +1318,7 @@ export default function App(){
         })():<p style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.15)"}}>Add games to see stats</p>}</div>}
     </main>
 
-    {m&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:90,background:"rgba(15,12,25,.92)",backdropFilter:"blur(16px)",borderTop:"1px solid rgba(255,255,255,.04)",display:"flex",paddingTop:5,paddingBottom:"max(env(safe-area-inset-bottom,12px),12px)"}}>
+    {m&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:90,background:lt?"rgba(248,250,252,.95)":"rgba(15,12,25,.92)",backdropFilter:"blur(16px)",borderTop:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)",display:"flex",paddingTop:5,paddingBottom:"max(env(safe-area-inset-bottom,12px),12px)"}}>
       {NAV.map(n=><div key={n.id} onClick={()=>{setPg(n.id);setQ("");setQO(false);setViewUID(null)}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"2px 0"}}>
         <span style={{fontSize:18,opacity:pg===n.id?1:.2}}>{n.i}</span>
         <span style={{fontSize:8,fontWeight:800,color:pg===n.id?"#67e8f9":"rgba(255,255,255,.15)"}}>{n.l}</span></div>)}</div>}
@@ -1314,5 +1337,27 @@ export default function App(){
         :<p style={{color:"rgba(255,255,255,.15)",fontSize:13,textAlign:"center",padding:30}}>No notifications yet</p>}
       </div></div>}
 
-    {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} userProf={prof}/>}
+    {/* Compare Modal */}
+    {compareData&&<div style={{position:"fixed",inset:0,zIndex:1100,background:"rgba(15,12,25,.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .12s",padding:m?12:24}}>
+      <div style={{background:"#16132a",width:"100%",maxWidth:600,maxHeight:"85vh",borderRadius:24,overflow:"auto",border:"1px solid rgba(255,255,255,.06)",padding:m?16:24}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <h3 style={{fontFamily:"'Outfit'",fontSize:20,fontWeight:900}}>🔄 Library Comparison</h3>
+          <button onClick={()=>{setCompareData(null);setCompareUID(null)}} style={{width:32,height:32,borderRadius:10,...glass,border:"none",color:"#fff",fontSize:14,cursor:"pointer"}}>✕</button></div>
+        <div style={{display:"flex",gap:16,marginBottom:20,justifyContent:"center"}}>
+          <div style={{textAlign:"center"}}><Av url={prof?.avatar_url} name={prof?.display_name} size={48} v={avV}/><div style={{fontSize:12,fontWeight:700,marginTop:4}}>{prof?.display_name}</div><div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>{Object.keys(ud).length} games</div></div>
+          <div style={{display:"flex",alignItems:"center",fontSize:20,color:"rgba(255,255,255,.15)"}}>VS</div>
+          <div style={{textAlign:"center"}}><Av url={compareData.them?.avatar_url} name={compareData.them?.display_name} size={48} v={avV}/><div style={{fontSize:12,fontWeight:700,marginTop:4}}>{compareData.them?.display_name}</div><div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>{compareData.theirGames.length} games</div></div></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+          <div style={{...glass,padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{compareData.both.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>BOTH PLAYED</div></div>
+          <div style={{...glass,padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{compareData.onlyMe.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>ONLY YOU</div></div>
+          <div style={{...glass,padding:12,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#818cf8"}}>{compareData.onlyThem.length}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700}}>ONLY THEM</div></div></div>
+        {compareData.both.length>0&&<><div className="sec-title" style={{fontSize:10}}>GAMES IN COMMON</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{compareData.both.slice(0,20).map(id=>{const g=ud[id];return g?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(110,231,183,.08)",border:"1px solid rgba(110,231,183,.15)",fontSize:10,fontWeight:600,color:"#6ee7b7"}}>{g.title}</div>:null})}</div></>}
+        {compareData.onlyMe.length>0&&<><div className="sec-title" style={{fontSize:10}}>RECOMMEND TO THEM</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{compareData.onlyMe.slice(0,15).map(id=>{const g=ud[id];return g?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(103,232,249,.06)",fontSize:10,fontWeight:600,color:"rgba(255,255,255,.4)"}}>{g.title}</div>:null})}</div></>}
+        {compareData.onlyThem.length>0&&<><div className="sec-title" style={{fontSize:10}}>THEY RECOMMEND</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{compareData.onlyThem.slice(0,15).map(id=>{const tg=compareData.theirGames.find(g=>g.game_id===id);return tg?<div key={id} style={{padding:"4px 10px",borderRadius:8,background:"rgba(129,140,248,.06)",fontSize:10,fontWeight:600,color:"rgba(255,255,255,.4)"}}>{tg.game_title}</div>:null})}</div></>}
+      </div></div>}
+
+    {sel&&<GD game={sel} onClose={()=>setSel(null)} m={m} ud={ud} setUd={setUd} user={user} setSa={setSa} refresh={rf} goUser={goUser} avV={avV} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} userProf={prof} lt={lt}/>}
   </div>}
