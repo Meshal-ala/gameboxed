@@ -156,6 +156,8 @@ const Stars=({rating=0,size=14,interactive,onRate,show})=>{const[h,setH]=useStat
     {(interactive||show)&&a>0&&<span style={{fontSize:size*.7,color:"#fde68a",fontWeight:700,marginLeft:3}}>{a}</span>}</div>};
 
 const Loader=()=><div style={{display:"flex",justifyContent:"center",padding:32}}><div style={{width:24,height:24,border:"2.5px solid rgba(255,255,255,.05)",borderTopColor:"#67e8f9",borderRadius:"50%",animation:"spin .7s linear infinite"}}/></div>;
+const Skel=({w="100%",h=20,r=8})=><div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;
+const SkelCard=({big,m})=><div style={{borderRadius:big?20:14,aspectRatio:big?"16/9":"2/3",background:"linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;
 const Av=({url,name,size=32,onClick,v})=>{const s=avUrl(url,v);return<div onClick={onClick} style={{width:size,height:size,borderRadius:size*.3,background:s?"rgba(255,255,255,.05)":"linear-gradient(135deg,#67e8f9,#818cf8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.38,fontWeight:800,cursor:onClick?"pointer":"default",overflow:"hidden",flexShrink:0,color:"#fff"}}>{s?<img src={s} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(name||"?").charAt(0).toUpperCase()}</div>};
 
 /* IGDB Cover Cache — proper portrait covers for ALL platforms */
@@ -421,14 +423,22 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
   const[mr,setMr]=useState(d.myRating||0);const[st,setSt]=useState(d.status||"");const[tab,setTab]=useState("about");
   const[rvs,setRvs]=useState([]);const[rt,setRt]=useState("");const[rr,setRr]=useState(0);const[posting,setPosting]=useState(false);const[showLists,setShowLists]=useState(false);const[addedList,setAddedList]=useState("");
   const[isFav,setIsFav]=useState(false);const[favLd,setFavLd]=useState(false);
-  const[ach,setAch]=useState(null);// {total,achieved,pct}
+  const[ach,setAch]=useState(null);
+  const[oc,setOc]=useState(null);// OpenCritic {score,recommended,tier,url}
+  const[sgdbArt,setSgdbArt]=useState({grids:[],heroes:[]});
   useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs);
+    // OpenCritic score
+    fetch(`/api/extra?action=oc-search&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.score)setOc(d)}).catch(()=>{});
+    // SteamGridDB art
+    fetch(`/api/extra?action=sgdb-search&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.id){
+      Promise.all([
+        fetch(`/api/extra?action=sgdb-grids&gameid=${d.id}`).then(r=>r.json()),
+        fetch(`/api/extra?action=sgdb-heroes&gameid=${d.id}`).then(r=>r.json()),
+      ]).then(([gr,hr])=>setSgdbArt({grids:gr.grids||[],heroes:hr.heroes||[]}))}}).catch(()=>{});
     if(me){getUserFavs(me.id).then(fs=>setIsFav(fs.some(f=>f.game_id===g.id)));
-      // Fetch Steam achievements if user has steam linked
       if(userProf?.steam_id){(async()=>{try{
         const r=await fetch(`/api/steam?action=games&steamid=${userProf.steam_id}`);const d=await r.json();
         const gameName=g.t?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
-        // Fuzzy match: strip symbols, compare
         const match=(d.games||[]).find(sg=>{
           const sn=sg.name?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
           return sn===gameName || sn.includes(gameName) || gameName.includes(sn)
@@ -465,6 +475,8 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
           <button onClick={toggleFav} disabled={favLd} style={{padding:"10px 14px",borderRadius:14,...glass,border:isFav?"2px solid #fde68a":"1px solid rgba(255,255,255,.06)",color:isFav?"#fde68a":"rgba(255,255,255,.25)",fontSize:20,cursor:"pointer",flexShrink:0,background:isFav?"rgba(253,230,138,.08)":"rgba(255,255,255,.03)",transition:"all .15s"}} title={isFav?"Remove from favorites":"Add to favorites (max 4)"}>⭐</button>
           {g.r&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>COMMUNITY</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}><span style={{color:"#fde68a",fontSize:16}}>★</span><span style={{fontSize:20,fontWeight:900}}>{g.r}</span></div></div>}
           {g.mc&&<div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>METACRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:g.mc>=75?"#6ee7b7":"#fde68a"}}>{g.mc}</div></div>}
+          {oc&&<div onClick={()=>window.open(oc.url,"_blank")} style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center",cursor:"pointer",border:"1px solid rgba(252,165,3,.1)"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>OPENCRITIC</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:oc.score>=75?"#6ee7b7":oc.score>=60?"#fde68a":"#fda4af"}}>{oc.score}</div>
+            {oc.tier&&<div style={{fontSize:7,color:"rgba(255,255,255,.2)",marginTop:1}}>{oc.tier}</div>}</div>}
           <div style={{...glass,padding:"10px 14px",borderRadius:14,flex:1,textAlign:"center"}}><div style={{fontSize:8,color:"rgba(255,255,255,.3)",fontWeight:700}}>YOURS</div><div style={{fontSize:20,fontWeight:900,marginTop:3,color:"#67e8f9"}}>{mr||"—"}</div></div></div>
         {/* 🏆 Steam Achievements */}
         {ach&&<div style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:14}}>
@@ -475,6 +487,20 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
             <div style={{height:"100%",width:ach.pct+"%",background:ach.pct===100?"linear-gradient(90deg,#6ee7b7,#fde68a)":"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:4,transition:"width .6s ease"}}/>
           </div>
           {ach.pct===100&&<div style={{textAlign:"center",marginTop:6,fontSize:10,color:"#fde68a",fontWeight:700}}>🎉 100% Completed!</div>}
+        </div>}
+        {/* OpenCritic Details */}
+        {oc&&oc.recommended&&<div style={{...glass,padding:"12px 16px",borderRadius:14,marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:14}}>📊</span><span style={{fontSize:12,fontWeight:700,color:"#fca5a5"}}>OpenCritic</span></div>
+            <span style={{fontSize:11,color:"rgba(255,255,255,.25)"}}>{oc.reviewCount} critic reviews</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>Critics Recommend</span>
+                <span style={{fontSize:11,fontWeight:800,color:oc.recommended>=75?"#6ee7b7":"#fde68a"}}>{oc.recommended}%</span></div>
+              <div style={{width:"100%",height:6,background:"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:"100%",width:oc.recommended+"%",background:oc.recommended>=75?"linear-gradient(90deg,#6ee7b7,#67e8f9)":"linear-gradient(90deg,#fde68a,#fda4af)",borderRadius:3,transition:"width .6s"}}/>
+              </div></div></div>
         </div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
           <div style={{...glass,padding:14,borderRadius:14}}><div style={{fontSize:9,color:"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
@@ -496,7 +522,19 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
             <button onClick={subRev} disabled={posting||!rt.trim()} style={{marginTop:8,padding:"10px 20px",borderRadius:10,border:"none",background:rt.trim()?"linear-gradient(135deg,#67e8f9,#818cf8)":"rgba(255,255,255,.04)",color:rt.trim()?"#0f0c19":"rgba(255,255,255,.15)",fontSize:13,fontWeight:800,cursor:rt.trim()?"pointer":"default"}}>{posting?"...":"Post Review"}</button></div>}
           {rvs.map(r=><RevCard key={r.id} r={r} me={me} onClose={onClose} goUser={goUser} avV={avV}/>)}
           {!rvs.length&&<p style={{textAlign:"center",padding:28,color:"rgba(255,255,255,.15)"}}>No reviews yet</p>}</div>}
-        {tab==="media"&&g.ss?.length>1&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{g.ss.slice(1,7).map((s,i)=><img key={i} src={s} alt="" loading="lazy" style={{width:"100%",borderRadius:12,aspectRatio:"16/9",objectFit:"cover"}}/>)}</div>}
+        {tab==="media"&&<div>
+          {g.ss?.length>1&&<><div className="sec-title" style={{fontSize:10,marginBottom:8}}>SCREENSHOTS</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>{g.ss.slice(1,7).map((s,i)=><img key={i} src={s} alt="" loading="lazy" style={{width:"100%",borderRadius:12,aspectRatio:"16/9",objectFit:"cover"}}/>)}</div></>}
+          {sgdbArt.heroes.length>0&&<><div className="sec-title" style={{fontSize:10,marginBottom:8}}>🎨 COMMUNITY HEROES</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8,marginBottom:16}}>{sgdbArt.heroes.slice(0,3).map(h=><div key={h.id} style={{position:"relative",borderRadius:12,overflow:"hidden"}}>
+              <img src={h.url} alt="" loading="lazy" style={{width:"100%",borderRadius:12,aspectRatio:"32/13",objectFit:"cover"}}/>
+              <div style={{position:"absolute",bottom:4,right:6,fontSize:8,color:"rgba(255,255,255,.3)",background:"rgba(0,0,0,.5)",padding:"2px 6px",borderRadius:4}}>by {h.author}</div></div>)}</div></>}
+          {sgdbArt.grids.length>0&&<><div className="sec-title" style={{fontSize:10,marginBottom:8}}>🎨 COMMUNITY COVERS</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>{sgdbArt.grids.slice(0,6).map(gr=><div key={gr.id} style={{position:"relative",borderRadius:10,overflow:"hidden",aspectRatio:"2/3"}}>
+              <img src={gr.thumb||gr.url} alt="" loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>
+              <div style={{position:"absolute",bottom:3,right:4,fontSize:7,color:"rgba(255,255,255,.3)",background:"rgba(0,0,0,.5)",padding:"1px 4px",borderRadius:3}}>by {gr.author}</div></div>)}</div></>}
+          {!g.ss?.length&&!sgdbArt.heroes.length&&!sgdbArt.grids.length&&<p style={{textAlign:"center",padding:28,color:"rgba(255,255,255,.15)"}}>No media available</p>}
+        </div>}
       </div></div></div>};
 
 /* ═══ PROFILE PAGE — Letterboxd style with tabs ═══ */
@@ -726,7 +764,8 @@ export default function App(){
   const[myL,setMyL]=useState([]);const[nLN,setNLN]=useState("");const[feed,setFeed]=useState([]);const[rRev,setRRev]=useState([]);const[news,setNews]=useState([]);
   const[expGames,setExpGames]=useState([]);const[expLd,setExpLd]=useState(false);const[expPage,setExpPage]=useState(1);
   const[fPlat,setFPlat]=useState(null);const[fSort,setFSort]=useState("-rating");
-  const stt=useRef(null);const skipPush=useRef(false);
+  const[heroIdx,setHeroIdx]=useState(0);const[friendsPlaying,setFriendsPlaying]=useState([]);
+  const stt=useRef(null);const skipPush=useRef(false);const heroTimer=useRef(null);
 
   // Browser history — wrap setPg to push state
   const setPg=(p)=>{setPgRaw(p);if(!skipPush.current){window.history.pushState({pg:p,viewUID:null},"","")}skipPush.current=false};
@@ -799,12 +838,34 @@ export default function App(){
   const hcl=async()=>{if(!nLN.trim()||!user)return;const{data}=await createList(user.id,nLN);if(data)setMyL([...myL,data]);setNLN("")};
   const NAV=user?[{id:"home",i:"🏠",l:"Home"},{id:"explore",i:"🔍",l:"Explore"},{id:"feed",i:"⚡",l:"Activity"},{id:"library",i:"📚",l:"Library"},{id:"profile",i:"👤",l:"Profile"}]:[{id:"home",i:"🏠",l:"Home"},{id:"explore",i:"🔍",l:"Explore"}];
   const secGrid=(d,n=5)=><div style={{display:"grid",gridTemplateColumns:m?`repeat(3,1fr)`:`repeat(${n},1fr)`,gap:m?8:12}}>{d.slice(0,m?6:n).map((g,i)=><GC key={g.id} game={g} delay={i*20} onClick={setSel} mobile={m} ud={ud}/>)}</div>;
+  const skelGrid=(n=5)=><div style={{display:"grid",gridTemplateColumns:m?`repeat(3,1fr)`:`repeat(${n},1fr)`,gap:m?8:12}}>{Array(m?6:n).fill(0).map((_,i)=><SkelCard key={i} m={m}/>)}</div>;
+
+  // Hero carousel auto-rotate
+  const heroGames=pop.slice(0,5).filter(g=>g.img);
+  useEffect(()=>{if(heroGames.length<2||pg!=="home")return;heroTimer.current=setInterval(()=>setHeroIdx(i=>(i+1)%heroGames.length),5000);return()=>clearInterval(heroTimer.current)},[heroGames.length,pg]);
+
+  // Load friends playing
+  useEffect(()=>{if(!user)return;(async()=>{const{data:fo}=await supabase.from("follows").select("following_id").eq("follower_id",user.id);
+    if(!fo?.length)return;const ids=fo.map(f=>f.following_id);
+    const{data:games}=await supabase.from("user_games").select("*").in("user_id",ids).eq("status","playing").order("updated_at",{ascending:false}).limit(12);
+    if(!games?.length)return;const uids=[...new Set(games.map(g=>g.user_id))];
+    const{data:profs}=await supabase.from("profiles").select("id,display_name,avatar_url").in("id",uids);
+    const pm={};(profs||[]).forEach(p=>pm[p.id]=p);
+    setFriendsPlaying(games.map(g=>({...g,profile:pm[g.user_id]})))})()},[user]);
+
+  // Recommended games based on user's top genres
+  const getRecommended=()=>{if(!user||!Object.keys(ud).length)return[];
+    const genres={};all.forEach(g=>{if(ud[g.id]?.myRating>=3.5&&g.genre){g.genre.split(", ").forEach(gn=>{genres[gn]=(genres[gn]||0)+1})}});
+    const topGenres=Object.entries(genres).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+    if(!topGenres.length)return[];
+    return all.filter(g=>!ud[g.id]&&g.genre&&topGenres.some(tg=>g.genre.includes(tg))&&g.r>=4).slice(0,m?6:10)};
+  const recommended=getRecommended();
 
   return<div className="gbx" style={{fontFamily:"'DM Sans','Outfit',system-ui,sans-serif",color:"#fff",minHeight:"100vh"}}>
     <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Outfit:wght@100..900&display=swap');
       *{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
       @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-      @keyframes slideFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}
+      @keyframes slideFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{to{background-position:-200% 0}}
       body{margin:0;overflow-x:hidden}img{-webkit-user-drag:none}.hs::-webkit-scrollbar{display:none}.hs{-ms-overflow-style:none;scrollbar-width:none}
       @media(max-width:767px){*{-webkit-tap-highlight-color:transparent}}input::placeholder,textarea::placeholder{color:rgba(255,255,255,.15)}
       .gbx{background:#0f0c19;background-image:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(103,232,249,.06),transparent),radial-gradient(ellipse 50% 40% at 80% 10%,rgba(129,140,248,.06),transparent),radial-gradient(ellipse 60% 50% at 50% 100%,rgba(196,181,253,.04),transparent);background-attachment:fixed}
@@ -876,9 +937,10 @@ export default function App(){
 
       {/* HOME */}
       {pg==="home"&&<div style={{animation:"fadeIn .2s"}}>
+        {/* Hero — not logged in */}
         {!user&&!ld&&<div style={{textAlign:"center",padding:m?"30px 16px":"60px 0 50px",marginBottom:m?16:30,position:"relative"}}>
           <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 30%,rgba(103,232,249,.08) 0%,transparent 60%)",pointerEvents:"none"}}/>
-          <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:m?16:24}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:m?16:24}}>
             <svg width={m?40:56} height={m?40:56} viewBox="0 0 44 44"><rect x="13" y="0" width="18" height="44" rx="4" fill="#67e8f9"/><rect x="0" y="13" width="44" height="18" rx="4" fill="#67e8f9"/><circle cx="22" cy="22" r="5" fill="#0f0c19" opacity=".25"/></svg></div>
           <h1 style={{fontFamily:"'Outfit'",fontSize:m?32:56,fontWeight:900,lineHeight:1.05,letterSpacing:"-.03em"}}>Your gaming<br/><span style={{background:"linear-gradient(135deg,#67e8f9,#818cf8,#c4b5fd)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>diary awaits</span></h1>
           <p style={{color:"rgba(255,255,255,.35)",fontSize:m?14:17,marginTop:14,maxWidth:440,margin:"14px auto 28px",lineHeight:1.6}}>Track every game. Rate, review, and build your gaming identity. Connect with friends and discover what to play next.</p>
@@ -889,74 +951,130 @@ export default function App(){
             {[{n:"500K+",l:"Games"},{n:"Free",l:"Forever"},{n:"Steam",l:"Import"}].map((s,i)=>
               <div key={i}><div style={{fontSize:m?18:22,fontWeight:900,color:"#67e8f9"}}>{s.n}</div><div style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>{s.l}</div></div>)}</div></div>}
 
-        {ld?<Loader/>:<div style={{display:m?"block":"grid",gridTemplateColumns:user?"1fr 280px":"220px 1fr 260px",gap:24}}>
-          {/* LEFT: News (only when not logged in) */}
-          {!m&&!user&&<aside>
-            <div className="sec-title">📰 GAME NEWS</div>
-            {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
-              onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
-              {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
-              <div style={{padding:"8px 10px"}}>
-                <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date} · {n.genre}</div>
-                {n.mc&&<div style={{marginTop:3}}><span style={{fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:4,background:n.mc>=75?"rgba(110,231,183,.12)":"rgba(253,230,138,.12)",color:n.mc>=75?"#6ee7b7":"#fde68a"}}>MC {n.mc}</span></div>}
-              </div></div>)}
-          </aside>}
+        {/* Auto-rotating Hero Carousel — logged in users */}
+        {user&&heroGames.length>0&&<div style={{position:"relative",height:m?200:300,borderRadius:24,overflow:"hidden",marginBottom:24}}>
+          {heroGames.map((hg,i)=><div key={hg.id} onClick={()=>setSel(hg)} style={{position:"absolute",inset:0,opacity:heroIdx===i?1:0,transition:"opacity .8s ease",cursor:"pointer"}}>
+            <img src={hg.img} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(15,12,25,.2) 0%,rgba(15,12,25,.7) 50%,rgba(15,12,25,.95) 100%)"}}/>
+            <div style={{position:"absolute",bottom:m?16:28,left:m?16:28,right:m?16:120}}>
+              <h2 style={{fontFamily:"'Outfit'",fontSize:m?22:36,fontWeight:900,lineHeight:1.05}}>{hg.t}</h2>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
+                <span style={{color:"rgba(255,255,255,.4)",fontSize:13}}>{hg.y}</span>
+                {hg.genre&&<span style={{color:"rgba(255,255,255,.25)",fontSize:12}}>· {hg.genre}</span>}
+                {hg.r&&<span style={{padding:"3px 8px",borderRadius:6,background:"rgba(253,230,138,.12)",color:"#fde68a",fontSize:11,fontWeight:800}}>★ {hg.r}</span>}
+              </div></div></div>)}
+          {/* Dots */}
+          <div style={{position:"absolute",bottom:m?8:14,right:m?16:28,display:"flex",gap:6}}>
+            {heroGames.map((_,i)=><div key={i} onClick={e=>{e.stopPropagation();setHeroIdx(i);clearInterval(heroTimer.current)}} style={{width:heroIdx===i?20:8,height:8,borderRadius:4,background:heroIdx===i?"#67e8f9":"rgba(255,255,255,.2)",cursor:"pointer",transition:"all .3s"}}/>)}</div>
+        </div>}
 
-          {/* CENTER: Games */}
-          <div>
-            {pop[0]&&<div style={{marginBottom:m?16:24}}><GC game={pop[0]} onClick={setSel} mobile={m} ud={ud} big delay={0}/></div>}
-            <div className="sec-title">POPULAR</div>{secGrid(pop.slice(1),5)}<div style={{height:20}}/>
-            <div className="sec-title">NEW RELEASES</div>{secGrid(fresh,5)}<div style={{height:20}}/>
-            {best[0]&&<div style={{marginBottom:24}}><GC game={best[0]} onClick={setSel} mobile={m} ud={ud} big delay={0}/></div>}
-            <div className="sec-title">ALL-TIME BEST</div>{secGrid(best.slice(1),5)}<div style={{height:20}}/>
-            <div className="sec-title">COMING SOON</div>
-            <div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(6,1fr)",gap:m?8:10,marginBottom:24}}>{soon.slice(0,m?8:6).map((g,i)=><TC key={g.id} game={g} onClick={setSel} delay={i*15} m={m} ud={ud}/>)}</div>
-            <div className="sec-title">ACTION</div>{secGrid(actG,5)}<div style={{height:20}}/>
-            <div className="sec-title">RPG</div>{secGrid(rpg,5)}<div style={{height:20}}/>
-            <div className="sec-title">INDIE</div>{secGrid(indie,5)}
+        {/* Skeleton loading */}
+        {ld?<div>
+          <SkelCard big m={m}/>
+          <div style={{height:20}}/>
+          <Skel w={120} h={14} r={4}/>
+          <div style={{height:12}}/>
+          {skelGrid(5)}
+          <div style={{height:24}}/>
+          <Skel w={140} h={14} r={4}/>
+          <div style={{height:12}}/>
+          {skelGrid(5)}
+        </div>
 
-            {/* Mobile: news + activity */}
-            {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME NEWS</div>
-              <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
-                {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
-                  onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
-                  {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
-                  <div style={{padding:"8px 10px"}}><div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
-          </div>
-
-          {/* RIGHT: Following Activity + Reviews (only when logged in) */}
-          {!m&&<aside>
-            {user&&rRev.length>0&&<div style={{marginBottom:24}}><div className="sec-title">💬 FROM YOUR FEED</div>
-              {rRev.slice(0,5).map(r=><div key={r.id} style={{...glass,padding:"12px",borderRadius:14,marginBottom:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
-                  <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={20} onClick={()=>goUser(r.user_id)} v={avV}/>
-                  <span style={{fontSize:11,fontWeight:700,flex:1,cursor:"pointer"}} onClick={()=>goUser(r.user_id)}>{r.profiles?.display_name}</span>
-                  {r.rating>0&&<span style={{fontSize:9,color:"#fde68a"}}>★{r.rating}</span>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div>
-                <div onClick={()=>{const found=all.find(x=>x.id===r.game_id);if(found)setSel(found);else if(r.game_id)setSel({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3,cursor:"pointer"}}>{r.game_title}</div>
-                <p style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
-            {user&&<><div className="sec-title">⚡ FOLLOWING</div>
-              {feed.length?feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
-                <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={18} onClick={()=>goUser(a.user_id)} v={avV}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
-                  <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
-                  <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
-                  {a.game_title&&<span onClick={()=>{const found=all.find(x=>x.id===a.game_id);if(found)setSel(found);else if(a.game_id)setSel({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.game_title}</span>}
-                  {a.action==="followed"&&a.target_user_name&&<span onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.target_user_name}</span>}
+        :<div>
+          {/* Friends are playing — only when logged in and friends have games */}
+          {user&&friendsPlaying.length>0&&<div style={{marginBottom:28}}>
+            <div className="sec-title">👫 FRIENDS ARE PLAYING</div>
+            <div className="hs" style={{display:"flex",gap:m?10:14,overflowX:"auto",paddingBottom:8}}>
+              {friendsPlaying.slice(0,10).map((fp,i)=><div key={fp.id||i} onClick={()=>{const found=all.find(x=>x.id===fp.game_id);if(found)setSel(found);else setSel({id:fp.game_id,t:fp.game_title,img:fp.game_img,y:"",genre:"",r:null,pf:[]})}}
+                style={{minWidth:m?130:160,flexShrink:0,cursor:"pointer",transition:"transform .15s"}}
+                onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-3px)"}}
+                onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none"}}>
+                <div style={{borderRadius:14,overflow:"hidden",aspectRatio:"2/3",marginBottom:6,position:"relative",boxShadow:"0 4px 20px rgba(0,0,0,.3)"}}>
+                  {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 8px 6px",background:"linear-gradient(to top,rgba(15,12,25,.9),transparent)"}}>
+                    <div style={{fontSize:11,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.game_title}</div></div>
                 </div>
-                <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
-              :<p style={{textAlign:"center",padding:20,color:"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
-            {!user&&<><div className="sec-title">📰 GAME NEWS</div>
-              {news.slice(0,5).map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <Av url={fp.profile?.avatar_url} name={fp.profile?.display_name} size={18} v={avV}/>
+                  <span style={{fontSize:10,color:"rgba(255,255,255,.35)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.profile?.display_name}</span>
+                </div></div>)}</div></div>}
+
+          {/* Recommended For You */}
+          {user&&recommended.length>0&&<div style={{marginBottom:28}}>
+            <div className="sec-title">✨ RECOMMENDED FOR YOU</div>
+            {secGrid(recommended,5)}
+          </div>}
+
+          <div style={{display:m?"block":"grid",gridTemplateColumns:user?"1fr 280px":"220px 1fr 260px",gap:24}}>
+            {/* LEFT: News (only when not logged in) */}
+            {!m&&!user&&<aside>
+              <div className="sec-title">📰 GAME NEWS</div>
+              {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
                 onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
-                {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}}/>}
+                {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
                 <div style={{padding:"8px 10px"}}>
-                  <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                  <div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:2}}>{n.date}</div>
-                </div></div>)}</>}
-          </aside>}
+                  <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
+                  <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date} · {n.genre}</div>
+                  {n.mc&&<div style={{marginTop:3}}><span style={{fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:4,background:n.mc>=75?"rgba(110,231,183,.12)":"rgba(253,230,138,.12)",color:n.mc>=75?"#6ee7b7":"#fde68a"}}>MC {n.mc}</span></div>}
+                </div></div>)}
+            </aside>}
+
+            {/* CENTER: Games */}
+            <div>
+              {!user&&pop[0]&&<div style={{marginBottom:m?16:24}}><GC game={pop[0]} onClick={setSel} mobile={m} ud={ud} big delay={0}/></div>}
+              <div className="sec-title">🔥 POPULAR</div>{secGrid(pop.slice(user?0:1),5)}<div style={{height:24}}/>
+              <div className="sec-title">🆕 NEW RELEASES</div>{secGrid(fresh,5)}<div style={{height:24}}/>
+              {best[0]&&!user&&<div style={{marginBottom:24}}><GC game={best[0]} onClick={setSel} mobile={m} ud={ud} big delay={0}/></div>}
+              <div className="sec-title">⭐ ALL-TIME BEST</div>{secGrid(best.slice(user?0:1),5)}<div style={{height:24}}/>
+              <div className="sec-title">📅 COMING SOON</div>
+              <div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(6,1fr)",gap:m?8:10,marginBottom:24}}>{soon.slice(0,m?8:6).map((g,i)=><TC key={g.id} game={g} onClick={setSel} delay={i*15} m={m} ud={ud}/>)}</div>
+              <div className="sec-title">⚔️ ACTION</div>{secGrid(actG,5)}<div style={{height:24}}/>
+              <div className="sec-title">🧙 RPG</div>{secGrid(rpg,5)}<div style={{height:24}}/>
+              <div className="sec-title">🎨 INDIE</div>{secGrid(indie,5)}
+
+              {/* Mobile: news */}
+              {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME NEWS</div>
+                <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
+                  {news.map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
+                    onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
+                    {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
+                    <div style={{padding:"8px 10px"}}><div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
+                      <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
+            </div>
+
+            {/* RIGHT sidebar */}
+            {!m&&<aside>
+              {user&&rRev.length>0&&<div style={{marginBottom:24}}><div className="sec-title">💬 FROM YOUR FEED</div>
+                {rRev.slice(0,5).map(r=><div key={r.id} style={{...glass,padding:"12px",borderRadius:14,marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                    <Av url={r.profiles?.avatar_url} name={r.profiles?.display_name} size={20} onClick={()=>goUser(r.user_id)} v={avV}/>
+                    <span style={{fontSize:11,fontWeight:700,flex:1,cursor:"pointer"}} onClick={()=>goUser(r.user_id)}>{r.profiles?.display_name}</span>
+                    {r.rating>0&&<span style={{fontSize:9,color:"#fde68a"}}>★{r.rating}</span>}<span style={{fontSize:9,color:"rgba(255,255,255,.1)"}}>{tA(r.created_at)}</span></div>
+                  <div onClick={()=>{const found=all.find(x=>x.id===r.game_id);if(found)setSel(found);else if(r.game_id)setSel({id:r.game_id,t:r.game_title,img:r.game_img,y:"",genre:"",r:null,pf:[]})}} style={{fontSize:11,color:"#67e8f9",fontWeight:700,marginBottom:3,cursor:"pointer"}}>{r.game_title}</div>
+                  <p style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.4,margin:0,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.text}</p></div>)}</div>}
+              {user&&<><div className="sec-title">⚡ FOLLOWING</div>
+                {feed.length?feed.slice(0,10).map(a=><div key={a.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.03)",fontSize:11}}>
+                  <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={18} onClick={()=>goUser(a.user_id)} v={avV}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <span style={{fontWeight:700,cursor:"pointer"}} onClick={()=>goUser(a.user_id)}>{a.profiles?.display_name}</span>
+                    <span style={{marginLeft:3,fontSize:10}}>{actIcon(a.action)}</span>
+                    <span style={{color:"rgba(255,255,255,.15)"}}> {actLabel(a.action)} </span>
+                    {a.game_title&&<span onClick={()=>{const found=all.find(x=>x.id===a.game_id);if(found)setSel(found);else if(a.game_id)setSel({id:a.game_id,t:a.game_title,img:a.game_img,y:"",genre:"",r:null,pf:[]})}} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.game_title}</span>}
+                    {a.action==="followed"&&a.target_user_name&&<span onClick={()=>a.target_user_id&&goUser(a.target_user_id)} style={{color:"#67e8f9",cursor:"pointer",fontWeight:600}}>{a.target_user_name}</span>}
+                  </div>
+                  <span style={{fontSize:9,color:"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
+                :<p style={{textAlign:"center",padding:20,color:"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
+              {!user&&<><div className="sec-title">📰 GAME NEWS</div>
+                {news.slice(0,5).map((n,i)=><div key={i} style={{...glass,borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
+                  onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
+                  {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}}/>}
+                  <div style={{padding:"8px 10px"}}>
+                    <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:2}}>{n.date}</div>
+                  </div></div>)}</>}
+            </aside>}
+          </div>
         </div>}</div>}
 
       {/* FEED */}
