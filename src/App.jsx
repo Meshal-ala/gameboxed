@@ -169,9 +169,9 @@ const importSteamGames=async(uid,steamid)=>{
 
 /* News — fetch recently updated/released games with details */
 const loadNews=async()=>{
-  // Try real gaming news first
+  // Try deals-as-news from CheapShark
   try{const r=await fetch("/api/extra?action=news");const d=await r.json();
-    if(d.articles?.length)return d.articles.map(a=>({id:Math.random(),title:a.title,img:a.img,date:a.date?new Date(a.date).toLocaleDateString("en",{month:"short",day:"numeric"}):"",genre:a.source||"",mc:null,desc:a.desc,url:a.url}))}catch{}
+    if(d.articles?.length)return d.articles.map(a=>({id:Math.random(),title:a.title,img:a.img,date:a.date?new Date(a.date).toLocaleDateString("en",{month:"short",day:"numeric"}):"",genre:a.source||"",mc:a.metacritic||null,desc:a.desc,url:a.url,price:a.price,retail:a.retail,savings:a.savings}))}catch{}
   // Fallback to RAWG recent games
   const td=new Date().toISOString().slice(0,10);const wk=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   try{const r=await fetch(`${AP}/games?key=${AK}&dates=${wk},${td}&ordering=-added&page_size=6`);const d=await r.json();
@@ -1178,14 +1178,18 @@ export default function App(){
           <div style={{display:m?"block":"grid",gridTemplateColumns:user?"1fr 280px":"220px 1fr 260px",gap:24}}>
             {/* LEFT: News (only when not logged in) */}
             {!m&&!user&&<aside>
-              <div className="sec-title">📰 GAME NEWS</div>
+              <div className="sec-title">📰 GAME DEALS</div>
               {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
-                onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
+                onClick={()=>{if(n.url)window.open(n.url,"_blank");else{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}}>
                 {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
                 <div style={{padding:"8px 10px"}}>
                   <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                  <div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.25)",marginTop:3}}>{n.date} · {n.genre}</div>
-                  {n.mc&&<div style={{marginTop:3}}><span style={{fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:4,background:n.mc>=75?"rgba(110,231,183,.12)":"rgba(253,230,138,.12)",color:n.mc>=75?"#6ee7b7":"#fde68a"}}>MC {n.mc}</span></div>}
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                    {n.price&&<span style={{fontSize:12,fontWeight:900,color:"#6ee7b7"}}>${n.price}</span>}
+                    {n.retail&&n.savings>0&&<span style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",textDecoration:"line-through"}}>${n.retail}</span>}
+                    {n.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(110,231,183,.12)",color:"#6ee7b7"}}>-{n.savings}%</span>}
+                  </div>
+                  <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:2}}>{n.genre}{n.date?" · "+n.date:""}</div>
                 </div></div>)}
             </aside>}
 
@@ -1202,14 +1206,18 @@ export default function App(){
               <div className="sec-title">🧙 RPG</div>{secGrid(rpg,5)}<div style={{height:24}}/>
               <div className="sec-title">🎨 INDIE</div>{secGrid(indie,5)}
 
-              {/* Mobile: news */}
-              {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME NEWS</div>
+              {/* Mobile: deals */}
+              {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME DEALS</div>
                 <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
                   {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
-                    onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
+                    onClick={()=>{if(n.url)window.open(n.url,"_blank");else{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}}>
                     {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
                     <div style={{padding:"8px 10px"}}><div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                      <div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.25)",marginTop:3}}>{n.date}</div></div></div>)}</div></>}
+                      <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
+                        {n.price&&<span style={{fontSize:11,fontWeight:900,color:"#6ee7b7"}}>${n.price}</span>}
+                        {n.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"1px 4px",borderRadius:3,background:"rgba(110,231,183,.12)",color:"#6ee7b7"}}>-{n.savings}%</span>}
+                        <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.15)",marginLeft:"auto"}}>{n.genre}</span>
+                      </div></div></div>)}</div></>}
             </div>
 
             {/* RIGHT sidebar */}
@@ -1234,14 +1242,17 @@ export default function App(){
                   </div>
                   <span style={{fontSize:9,color:lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
                 :<p style={{textAlign:"center",padding:20,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
-              {!user&&<><div className="sec-title">📰 GAME NEWS</div>
+              {!user&&<><div className="sec-title">📰 GAME DEALS</div>
                 {news.slice(0,5).map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
-                  onClick={()=>{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}>
+                  onClick={()=>{if(n.url)window.open(n.url,"_blank");else{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}}>
                   {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}}/>}
                   <div style={{padding:"8px 10px"}}>
                     <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                    <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:2}}>{n.date}</div>
-                  </div></div>)}</>}
+                    <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
+                      {n.price&&<span style={{fontSize:11,fontWeight:900,color:"#6ee7b7"}}>${n.price}</span>}
+                      {n.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"1px 4px",borderRadius:3,background:"rgba(110,231,183,.12)",color:"#6ee7b7"}}>-{n.savings}%</span>}
+                      <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.15)",marginLeft:"auto"}}>{n.genre}</span>
+                    </div></div></div>)}</>}
             </aside>}
           </div>
         </div>}</div>}

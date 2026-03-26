@@ -1,5 +1,6 @@
 const SGDB_KEY = process.env.STEAMGRIDDB_KEY;
 const RAPID_KEY = process.env.RAPIDAPI_KEY;
+const STORES={"1":"Steam","2":"GamersGate","3":"GreenManGaming","7":"GOG","8":"Origin","11":"Humble","13":"Uplay","15":"Fanatical","21":"WinGameStore","23":"GameBillet","24":"Voidu","25":"Epic Games","27":"Gamesplanet","28":"Gamesload","29":"2Game","30":"IndieGala","31":"Blizzard","33":"DLGamer","34":"Noctre","35":"GameStop"};
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -150,39 +151,30 @@ export default async function handler(req, res) {
 
     // ═══ GAMING NEWS ═══
 
-    // Fetch gaming news via GNews
     if (action === "news") {
-      const r = await fetch(`https://gnews.io/api/v4/search?q=video+games&lang=en&category=entertainment&max=8&sortby=publishedAt&apikey=free`);
-      const fallback = await fetch(`https://www.cheapshark.com/api/1.0/deals?sortBy=Recent&pageSize=8`);
-      const fb = await fallback.json();
-      
       try {
-        const d = await r.json();
-        if (d.articles?.length) {
+        // Use CheapShark recent deals as gaming news (always works, no API key needed)
+        const r = await fetch(`https://www.cheapshark.com/api/1.0/deals?sortBy=Recent&pageSize=10&onSale=1`);
+        const deals = await r.json();
+        
+        if (Array.isArray(deals) && deals.length) {
           return res.json({
-            articles: d.articles.map(a => ({
-              title: a.title,
-              desc: a.description,
-              url: a.url,
-              img: a.image,
-              source: a.source?.name,
-              date: a.publishedAt
+            articles: deals.map(d => ({
+              title: d.title,
+              desc: `$${d.salePrice} (was $${d.normalPrice}) — ${Math.round(parseFloat(d.savings || 0))}% off`,
+              url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`,
+              img: d.thumb,
+              source: STORES[d.storeID] || "Store",
+              date: d.lastChange ? new Date(d.lastChange * 1000).toISOString() : new Date().toISOString(),
+              savings: Math.round(parseFloat(d.savings || 0)),
+              price: d.salePrice,
+              retail: d.normalPrice,
+              metacritic: d.metacriticScore ? parseInt(d.metacriticScore) : null
             }))
           });
         }
       } catch {}
-      
-      // Fallback to recent deals as "news"
-      return res.json({
-        articles: (fb || []).slice(0, 8).map(d => ({
-          title: `${d.title} — $${d.salePrice} (${Math.round(parseFloat(d.savings))}% off)`,
-          desc: `Was $${d.normalPrice}, now $${d.salePrice}`,
-          url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`,
-          img: d.thumb,
-          source: "CheapShark",
-          date: new Date(d.lastChange * 1000).toISOString()
-        }))
-      });
+      return res.json({ articles: [] });
     }
 
     return res.status(400).json({ error: "Invalid action" });
