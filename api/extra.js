@@ -153,22 +153,21 @@ export default async function handler(req, res) {
 
     if (action === "news") {
       try {
-        // Fetch real gaming news from RSS feeds (IGN, PC Gamer, GameSpot)
         const feeds = [
-          "https://feeds.feedburner.com/ign/all",
-          "https://www.pcgamer.com/rss/",
+          "https://feeds.feedburner.com/ign/games-all",
           "https://www.gamespot.com/feeds/news/",
         ];
         
         const articles = [];
+        // Words that indicate non-game news (hardware, accessories, etc.)
+        const skipWords = ["headset", "headphone", "controller", "monitor", "keyboard", "mouse", "chair", "desk", "tv ", "laptop", "gpu", "cpu", "graphics card", "ssd", "ram", "motherboard", "router", "earbuds", "speaker", "microphone", "webcam", "capture card", "streaming deck", "phone case", "cable", "charger", "power bank", "subscription price", "price increase"];
         
         for (const feedUrl of feeds) {
           try {
             const r = await fetch(feedUrl, { headers: { "User-Agent": "GameBoxd/1.0" } });
             const xml = await r.text();
             
-            // Simple XML parsing for RSS items
-            const items = xml.split("<item>").slice(1, 5); // Get first 4 items per feed
+            const items = xml.split("<item>").slice(1, 8);
             for (const item of items) {
               const getTag = (tag) => {
                 const match = item.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([^\\]]*?)\\]\\]></${tag}>|<${tag}[^>]*>([^<]*)</${tag}>`));
@@ -180,13 +179,15 @@ export default async function handler(req, res) {
               const pubDate = getTag("pubDate");
               const desc = getTag("description").replace(/<[^>]+>/g, "").slice(0, 120);
               
-              // Try to find image in media:content, media:thumbnail, or description
+              // Skip non-game news
+              const titleLower = (title + " " + desc).toLowerCase();
+              if (skipWords.some(w => titleLower.includes(w))) continue;
+              
               const mediaMatch = item.match(/url="(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/i);
               const imgMatch = item.match(/<img[^>]+src="(https?:\/\/[^"]+)"/i);
               const img = mediaMatch ? mediaMatch[1] : imgMatch ? imgMatch[1] : "";
               
-              // Determine source from feed URL
-              const source = feedUrl.includes("ign") ? "IGN" : feedUrl.includes("pcgamer") ? "PC Gamer" : "GameSpot";
+              const source = feedUrl.includes("ign") ? "IGN" : "GameSpot";
               
               if (title) {
                 articles.push({ title, desc, url: link, img, source, date: pubDate || new Date().toISOString() });
@@ -195,9 +196,7 @@ export default async function handler(req, res) {
           } catch {}
         }
         
-        // Sort by date, newest first
         articles.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
         return res.json({ articles: articles.slice(0, 10) });
       } catch {}
       return res.json({ articles: [] });

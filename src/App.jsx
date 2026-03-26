@@ -246,10 +246,10 @@ const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState
 const TC=({game:g,onClick,delay=0,m,ud})=>{const[vis,setVis]=useState(false);
   useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);
   return<div onClick={()=>onClick?.(g)} style={{opacity:vis?1:0,transform:vis?"none":"translateY(6px)",transition:"all .2s",cursor:"pointer",textAlign:"center"}}>
-    <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1",marginBottom:4,position:"relative",boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
-      {g.img?<img src={g.img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:"#1e1b2e"}}/>}
+    <div style={{borderRadius:10,overflow:"hidden",width:"100%",paddingBottom:"100%",position:"relative",boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
+      {g.img?<img src={g.img} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{position:"absolute",inset:0,background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🎮</div>}
       <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 50%)"}}/>
-    </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(128,128,128,.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.t}</div></div>};
+    </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(128,128,128,.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:4}}>{g.t}</div></div>};
 
 /* Validation */
 const validPw=p=>{if(p.length<8)return"Password must be at least 8 characters";if(!/[A-Z]/.test(p))return"Must include an uppercase letter";if(!/[a-z]/.test(p))return"Must include a lowercase letter";if(!/[0-9]/.test(p))return"Must include a number";return null};
@@ -1157,9 +1157,9 @@ export default function App(){
             {secGrid(recommended,5)}
           </div>}
 
-          <div style={{display:m?"block":"grid",gridTemplateColumns:user?"1fr 280px":"220px 1fr 260px",gap:24}}>
-            {/* LEFT: News (only when not logged in) */}
-            {!m&&!user&&<aside>
+          <div style={{display:m?"block":"grid",gridTemplateColumns:!m?(news.length>0&&user?"220px 1fr 280px":news.length>0?"220px 1fr":user?"1fr 280px":"1fr"):"none",gap:24}}>
+            {/* LEFT: News — always visible on desktop */}
+            {!m&&news.length>0&&<aside>
               <div className="sec-title">📰 GAME NEWS</div>
               {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
                 onClick={()=>{if(n.url)window.open(n.url,"_blank")}}>
@@ -1193,8 +1193,8 @@ export default function App(){
                       <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.25)",marginTop:3}}>{n.source}{n.date?" · "+n.date:""}</div></div></div>)}</div></>}
             </div>
 
-            {/* RIGHT sidebar */}
-            {!m&&<aside>
+            {/* RIGHT sidebar — only when logged in */}
+            {!m&&user&&<aside>
               {user&&rRev.length>0&&<div style={{marginBottom:24}}><div className="sec-title">💬 FROM YOUR FEED</div>
                 {rRev.slice(0,5).map(r=><div key={r.id} style={{...(lt?glassL:glass),padding:"12px",borderRadius:14,marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
@@ -1215,14 +1215,6 @@ export default function App(){
                   </div>
                   <span style={{fontSize:9,color:lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
                 :<p style={{textAlign:"center",padding:20,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
-              {news.length>0&&<><div className="sec-title">📰 GAME NEWS</div>
-                {news.slice(0,5).map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
-                  onClick={()=>{if(n.url)window.open(n.url,"_blank")}}>
-                  {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}} onError={e=>e.target.style.display="none"}/>}
-                  <div style={{padding:"8px 10px"}}>
-                    <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                    <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:2}}>{n.source}{n.date?" · "+n.date:""}</div>
-                  </div></div>)}</>}
             </aside>}
           </div>
         </div>}</div>}
