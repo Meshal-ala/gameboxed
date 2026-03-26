@@ -245,10 +245,10 @@ const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState
 
 const TC=({game:g,onClick,delay=0,m,ud})=>{const[vis,setVis]=useState(false);
   useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);
-  return<div onClick={()=>onClick?.(g)} style={{opacity:vis?1:0,transform:vis?"none":"translateY(6px)",transition:"all .2s",cursor:"pointer",textAlign:"center"}}>
-    <div style={{borderRadius:10,overflow:"hidden",width:"100%",paddingBottom:"100%",position:"relative",boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
-      {g.img?<img src={g.img} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{position:"absolute",inset:0,background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🎮</div>}
-      <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 50%)"}}/>
+  return<div onClick={()=>onClick?.(g)} style={{opacity:vis?1:0,transform:vis?"none":"translateY(6px)",transition:"all .2s",cursor:"pointer",textAlign:"center",overflow:"hidden"}}>
+    <div style={{borderRadius:10,overflow:"hidden",width:"100%",height:0,paddingTop:"100%",position:"relative",boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
+      {g.img?<img src={g.img} style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",background:"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🎮</div>}
+      <div style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",background:"linear-gradient(to top,rgba(15,12,25,.7) 0%,transparent 50%)"}}/>
     </div><div style={{fontSize:9,fontWeight:600,lineHeight:1.2,color:"rgba(128,128,128,.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:4}}>{g.t}</div></div>};
 
 /* Validation */
@@ -1142,23 +1142,6 @@ export default function App(){
         </div>
 
         :<div>
-          {/* Friends are playing — only when logged in and friends have games */}
-          {user&&friendsPlaying.length>0&&<div style={{marginBottom:28}}>
-            <div className="sec-title">👫 FRIENDS ARE PLAYING</div>
-            <div className="hs" style={{display:"flex",gap:m?8:10,overflowX:"auto",paddingBottom:8}}>
-              {friendsPlaying.slice(0,10).map((fp,i)=><div key={fp.id||i} onClick={()=>{const found=all.find(x=>x.id===fp.game_id);if(found)setSel(found);else setSel({id:fp.game_id,t:fp.game_title,img:fp.game_img,y:"",genre:"",r:null,pf:[]})}}
-                style={{minWidth:m?110:130,maxWidth:m?110:130,flexShrink:0,cursor:"pointer",transition:"transform .15s"}}
-                onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-3px)"}}
-                onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none"}}>
-                <div style={{borderRadius:10,overflow:"hidden",width:"100%",height:m?65:80,marginBottom:5,position:"relative",boxShadow:"0 2px 10px rgba(0,0,0,.3)"}}>
-                  {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎮</div>}
-                </div>
-                <div style={{fontSize:10,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2,color:lt?"#1e293b":"#fff"}}>{fp.game_title}</div>
-                <div style={{display:"flex",alignItems:"center",gap:4}}>
-                  <Av url={fp.profile?.avatar_url} name={fp.profile?.display_name} size={14} v={avV}/>
-                  <span style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.profile?.display_name}</span>
-                </div></div>)}</div></div>}
-
           {/* Recommended For You */}
           {user&&recommended.length>0&&<div style={{marginBottom:28}}>
             <div className="sec-title">✨ RECOMMENDED FOR YOU</div>
@@ -1180,11 +1163,24 @@ export default function App(){
 
             {/* CENTER: Games */}
             <div>
-              {!user&&pop[0]&&<div style={{marginBottom:m?16:24}}><GC game={pop[0]} onClick={setSel} mobile={m} ud={ud} big delay={0}/></div>}
-              <div className="sec-title">🔥 POPULAR</div>{secGrid(pop.slice(user?0:1),5)}<div style={{height:24}}/>
+              {/* Friends are playing — replaces Popular */}
+              {user&&friendsPlaying.length>0&&<><div className="sec-title">👫 FRIENDS ARE PLAYING</div>
+                <div className="hs" style={{display:"flex",gap:m?8:10,overflowX:"auto",paddingBottom:8,marginBottom:24}}>
+                  {friendsPlaying.slice(0,10).map((fp,i)=><div key={fp.id||i} onClick={()=>{const found=all.find(x=>x.id===fp.game_id);if(found)setSel(found);else setSel({id:fp.game_id,t:fp.game_title,img:fp.game_img,y:"",genre:"",r:null,pf:[]})}}
+                    style={{minWidth:m?110:130,maxWidth:m?110:130,flexShrink:0,cursor:"pointer",transition:"transform .15s"}}
+                    onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="translateY(-3px)"}}
+                    onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="none"}}>
+                    <div style={{borderRadius:10,overflow:"hidden",width:"100%",height:m?65:80,marginBottom:5,position:"relative",boxShadow:"0 2px 10px rgba(0,0,0,.3)"}}>
+                      {fp.game_img?<img src={fp.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎮</div>}
+                    </div>
+                    <div style={{fontSize:10,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2,color:lt?"#1e293b":"#fff"}}>{fp.game_title}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <Av url={fp.profile?.avatar_url} name={fp.profile?.display_name} size={14} v={avV}/>
+                      <span style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fp.profile?.display_name}</span>
+                    </div></div>)}</div></>}
+
               <div className="sec-title">🆕 NEW RELEASES</div>{secGrid(fresh,5)}<div style={{height:24}}/>
-              {best[0]&&!user&&<div style={{marginBottom:24}}><GC game={best[0]} onClick={setSel} mobile={m} ud={ud} big delay={0}/></div>}
-              <div className="sec-title">⭐ ALL-TIME BEST</div>{secGrid(best.slice(user?0:1),5)}<div style={{height:24}}/>
+              <div className="sec-title">⭐ ALL-TIME BEST</div>{secGrid(best,5)}<div style={{height:24}}/>
               <div className="sec-title">📅 COMING SOON</div>
               <div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(6,1fr)",gap:m?8:10,marginBottom:24}}>{soon.slice(0,m?8:6).map((g,i)=><TC key={g.id} game={g} onClick={setSel} delay={i*15} m={m} ud={ud}/>)}</div>
               <div className="sec-title">⚔️ ACTION</div>{secGrid(actG,5)}<div style={{height:24}}/>
