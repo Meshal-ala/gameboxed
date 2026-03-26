@@ -438,13 +438,16 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
       ]).then(([gr,hr])=>setSgdbArt({grids:gr.grids||[],heroes:hr.heroes||[]}))}}).catch(()=>{});
     if(me){getUserFavs(me.id).then(fs=>setIsFav(fs.some(f=>f.game_id===g.id)));
       if(userProf?.steam_id){(async()=>{try{
-        const r=await fetch(`/api/steam?action=games&steamid=${userProf.steam_id}`);const d=await r.json();
-        const gameName=g.t?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
-        const match=(d.games||[]).find(sg=>{
-          const sn=sg.name?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
-          return sn===gameName || sn.includes(gameName) || gameName.includes(sn)
-        });
-        if(match){const ar=await fetch(`/api/steam?action=achievements&steamid=${userProf.steam_id}&appid=${match.appid}`);const ad=await ar.json();if(ad.total>0)setAch(ad)}
+        // Try direct appid from user_games first
+        const{data:ugRow}=await supabase.from("user_games").select("steam_appid").eq("user_id",me.id).eq("game_id",g.id).single();
+        let appid=ugRow?.steam_appid;
+        // Fallback: strict name match against Steam library
+        if(!appid){
+          const r=await fetch(`/api/steam?action=games&steamid=${userProf.steam_id}`);const sd=await r.json();
+          const gameName=g.t?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
+          const exact=(sd.games||[]).find(sg=>sg.name?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim()===gameName);
+          if(exact)appid=exact.appid}
+        if(appid){const ar=await fetch(`/api/steam?action=achievements&steamid=${userProf.steam_id}&appid=${appid}`);const ad=await ar.json();if(ad.total>0)setAch(ad)}
       }catch{}})()}}},[g.id]);
   const toggleFav=async()=>{if(!me){setSa(true);return}setFavLd(true);if(isFav){await removeFav(me.id,g.id);setIsFav(false)}else{const ok=await addFav(me.id,g);if(!ok)alert("Max 4 favorites!");else{setIsFav(true);await postAct(me.id,"favorited",{id:g.id,title:g.t,img:g.img})}}setFavLd(false)};
   const sv=async(f,v)=>{if(!me){setSa(true);return}const nd={...d,[f]:v,title:g.t,img:g.img};if(f==="myRating"){setMr(v);await postAct(me.id,"rated",{id:g.id,title:g.t,img:g.img,rating:v})}if(f==="status"){setSt(v);const actMap={completed:"completed",playing:"started playing",wishlist:"added to wishlist",backlog:"added to backlog",dropped:"dropped"};await postAct(me.id,actMap[v]||v,{id:g.id,title:g.t,img:g.img})}
@@ -549,14 +552,13 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const[steamAchs,setSteamAchs]=useState([]);const[showShareCard,setShowShareCard]=useState(false);const[achLoading,setAchLoading]=useState(false);
   const isSelf=me?.id===viewId;const bannerRef=useRef();
   useEffect(()=>{(async()=>{setLd(true);const[pr,c,g,a,f,r,di]=await Promise.all([lp(viewId),getFC(viewId),getUG(viewId),getUserActs(viewId),getUserFavs(viewId),getUserRevs(viewId),loadDiary(viewId)]);setP(pr);setFc(c);setGs(g);setActs(a);setFavs(f);setRevs(r);setDiary(di);if(me&&!isSelf)setIsF(await chkF(me.id,viewId));setLd(false);
-    // Load Steam achievements for all games if Steam linked
+    // Load Steam achievements — use stored steam_appid directly (no fuzzy matching)
     if(pr?.steam_id&&g.length>0){setAchLoading(true);try{
-      const sr=await fetch(`/api/steam?action=games&steamid=${pr.steam_id}`);const sd=await sr.json();
-      const results=[];for(const ug of g.slice(0,30)){
-        const gameName=ug.game_title?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();
-        const match=(sd.games||[]).find(sg=>{const sn=sg.name?.toLowerCase().replace(/[™®:'\-–—]/g,"").replace(/\s+/g," ").trim();return sn===gameName||sn.includes(gameName)||gameName.includes(sn)});
-        if(match){try{const ar=await fetch(`/api/steam?action=achievements&steamid=${pr.steam_id}&appid=${match.appid}`);const ad=await ar.json();
-          if(ad.total>0)results.push({game_id:ug.game_id,game_title:ug.game_title,game_img:ug.game_img,...ad})}catch{}}}
+      const steamGames=g.filter(ug=>ug.steam_appid);// only games imported from Steam
+      const results=[];
+      for(const ug of steamGames){
+        try{const ar=await fetch(`/api/steam?action=achievements&steamid=${pr.steam_id}&appid=${ug.steam_appid}`);const ad=await ar.json();
+          if(ad.total>0)results.push({game_id:ug.game_id,game_title:ug.game_title,game_img:ug.game_img,appid:ug.steam_appid,playtime:ug.steam_playtime||0,...ad})}catch{}}
       setSteamAchs(results)}catch{}setAchLoading(false)}
   })()},[viewId]);
   const tog=async()=>{if(!me)return;if(isF){await unfollowU(me.id,viewId);setIsF(false);setFc(x=>({...x,followers:x.followers-1}))}else{await followU(me.id,viewId);setIsF(true);setFc(x=>({...x,followers:x.followers+1}));await postAct(me.id,"followed",null,{targetUserId:viewId,targetUserName:p?.display_name});await sendNotif(viewId,me.id,"follow",`${me.user_metadata?.display_name||"Someone"} followed you`)}};
@@ -772,12 +774,15 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
           <div style={{...(lt?glassL:glass),padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#6ee7b7"}}>{steamAchs.filter(a=>a.pct===100).length}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>PERFECTED</div></div>
           <div style={{...(lt?glassL:glass),padding:14,borderRadius:14,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#67e8f9"}}>{steamAchs.reduce((s,a)=>s+a.achieved,0)}</div><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700}}>TOTAL UNLOCKED</div></div>
         </div>
-        {/* Per-game list */}
-        {steamAchs.sort((a,b)=>b.pct-a.pct).map(ach=><div key={ach.game_id} onClick={()=>{const found=allGames.find(x=>x.id===ach.game_id);if(found)setSel?.(found);else setSel?.({id:ach.game_id,t:ach.game_title,img:ach.game_img,y:"",genre:"",r:null,pf:[]})}}
+        {/* Per-game list — sorted by completion % then playtime */}
+        {[...steamAchs].sort((a,b)=>b.pct===a.pct?(b.playtime||0)-(a.playtime||0):b.pct-a.pct).map(ach=><div key={ach.appid||ach.game_id} onClick={()=>{const found=allGames.find(x=>x.id===ach.game_id);if(found)setSel?.(found);else setSel?.({id:ach.game_id,t:ach.game_title,img:ach.game_img,y:"",genre:"",r:null,pf:[]})}}
           style={{...(lt?glassL:glass),borderRadius:12,padding:"10px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}>
           {ach.game_img&&<div style={{width:36,height:48,borderRadius:6,overflow:"hidden",flexShrink:0}}><img src={ach.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/></div>}
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ach.game_title}</div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{ach.game_title}</div>
+              {ach.playtime>0&&<span style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.15)",flexShrink:0}}>{Math.round(ach.playtime/60)}h</span>}
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
               <div style={{flex:1,height:5,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
                 <div style={{height:"100%",width:ach.pct+"%",background:ach.pct===100?"linear-gradient(90deg,#6ee7b7,#fde68a)":"linear-gradient(90deg,#67e8f9,#818cf8)",borderRadius:3}}/></div>
