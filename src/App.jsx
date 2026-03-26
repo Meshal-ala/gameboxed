@@ -7,8 +7,6 @@ const SC={completed:{c:"#6ee7b7",l:"Completed"},playing:{c:"#67e8f9",l:"Playing"
 const glass={background:"rgba(255,255,255,.03)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,.06)",borderRadius:16};
 const glassL={background:"rgba(0,0,0,.03)",backdropFilter:"blur(12px)",border:"1px solid rgba(0,0,0,.06)",borderRadius:16};
 
-const STORES={"1":"Steam","2":"GamersGate","3":"GreenManGaming","7":"GOG","8":"Origin","11":"Humble","13":"Uplay","15":"Fanatical","21":"WinGameStore","23":"GameBillet","24":"Voidu","25":"Epic Games","27":"Gamesplanet","28":"Gamesload","29":"2Game","30":"IndieGala","31":"Blizzard","33":"DLGamer","34":"Noctre","35":"GameStop"};
-
 const getBadges=(gs,revs,diary,favs,acts,fc)=>{
   const b=[];const gc=gs.length;const cc=gs.filter(g=>g.status==="completed").length;
   const rc=revs.length;const dc=diary.length;
@@ -169,13 +167,12 @@ const importSteamGames=async(uid,steamid)=>{
 
 /* News — fetch recently updated/released games with details */
 const loadNews=async()=>{
-  // Try deals-as-news from CheapShark
   try{const r=await fetch("/api/extra?action=news");const d=await r.json();
-    if(d.articles?.length)return d.articles.map(a=>({id:Math.random(),title:a.title,img:a.img,date:a.date?new Date(a.date).toLocaleDateString("en",{month:"short",day:"numeric"}):"",genre:a.source||"",mc:a.metacritic||null,desc:a.desc,url:a.url,price:a.price,retail:a.retail,savings:a.savings}))}catch{}
+    if(d.articles?.length)return d.articles.map(a=>({id:Math.random(),title:a.title,img:a.img,date:a.date?new Date(a.date).toLocaleDateString("en",{month:"short",day:"numeric"}):"",source:a.source||"",desc:a.desc||"",url:a.url}))}catch{}
   // Fallback to RAWG recent games
   const td=new Date().toISOString().slice(0,10);const wk=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
-  try{const r=await fetch(`${AP}/games?key=${AK}&dates=${wk},${td}&ordering=-added&page_size=6`);const d=await r.json();
-    return(d.results||[]).map(g=>({id:g.id,title:g.name,img:g.background_image,date:g.released,genre:g.genres?.[0]?.name||"",mc:g.metacritic,desc:g.genres?.map(x=>x.name).join(", ")}))
+  try{const r=await fetch(`${AP}/games?key=${AK}&dates=${wk},${td}&ordering=-added&page_size=8`);const d=await r.json();
+    return(d.results||[]).map(g=>({id:g.id,title:g.name,img:g.background_image,date:g.released,source:g.genres?.[0]?.name||"",desc:g.genres?.map(x=>x.name).join(", ")}))
   }catch{return[]}
 };
 
@@ -463,12 +460,9 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
   const[ach,setAch]=useState(null);
   const[oc,setOc]=useState(null);// OpenCritic {score,recommended,tier,url}
   const[sgdbArt,setSgdbArt]=useState({grids:[],heroes:[]});
-  const[deals,setDeals]=useState([]);
   useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs);
     // OpenCritic score
     fetch(`/api/extra?action=oc-search&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.score)setOc(d)}).catch(()=>{});
-    // CheapShark deals
-    fetch(`/api/extra?action=deals&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.deals?.length)setDeals(d.deals)}).catch(()=>{});
     // SteamGridDB art
     fetch(`/api/extra?action=sgdb-search&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.id){
       Promise.all([
@@ -543,18 +537,6 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
               <div style={{width:"100%",height:6,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
                 <div style={{height:"100%",width:oc.recommended+"%",background:oc.recommended>=75?"linear-gradient(90deg,#6ee7b7,#67e8f9)":"linear-gradient(90deg,#fde68a,#fda4af)",borderRadius:3,transition:"width .6s"}}/>
               </div></div></div>
-        </div>}
-        {/* 💰 Game Deals */}
-        {deals.length>0&&<div style={{...(lt?glassL:glass),padding:"12px 16px",borderRadius:14,marginBottom:14}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <span style={{fontSize:14}}>💰</span><span style={{fontSize:12,fontWeight:700,color:"#6ee7b7"}}>Best Deals</span></div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {deals.slice(0,4).map((d,i)=><a key={i} href={d.url} target="_blank" rel="noopener" style={{padding:"6px 10px",borderRadius:8,background:lt?"rgba(110,231,183,.08)":"rgba(110,231,183,.06)",border:"1px solid rgba(110,231,183,.12)",textDecoration:"none",display:"flex",alignItems:"center",gap:6,flex:"1 1 45%",minWidth:0}}>
-              <span style={{fontSize:13,fontWeight:900,color:"#6ee7b7"}}>${d.price}</span>
-              {d.savings>0&&<span style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.25)",textDecoration:"line-through"}}>${d.retail}</span>}
-              {d.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(110,231,183,.15)",color:"#6ee7b7"}}>-{d.savings}%</span>}
-              <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginLeft:"auto",flexShrink:0}}>{STORES[d.store]||"Store"}</span>
-            </a>)}</div>
         </div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
           <div style={{...(lt?glassL:glass),padding:14,borderRadius:14}}><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
@@ -1178,18 +1160,13 @@ export default function App(){
           <div style={{display:m?"block":"grid",gridTemplateColumns:user?"1fr 280px":"220px 1fr 260px",gap:24}}>
             {/* LEFT: News (only when not logged in) */}
             {!m&&!user&&<aside>
-              <div className="sec-title">📰 GAME DEALS</div>
+              <div className="sec-title">📰 GAME NEWS</div>
               {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
-                onClick={()=>{if(n.url)window.open(n.url,"_blank");else{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}}>
-                {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
+                onClick={()=>{if(n.url)window.open(n.url,"_blank")}}>
+                {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}} onError={e=>e.target.style.display="none"}/>}
                 <div style={{padding:"8px 10px"}}>
                   <div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-                    {n.price&&<span style={{fontSize:12,fontWeight:900,color:"#6ee7b7"}}>${n.price}</span>}
-                    {n.retail&&n.savings>0&&<span style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",textDecoration:"line-through"}}>${n.retail}</span>}
-                    {n.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(110,231,183,.12)",color:"#6ee7b7"}}>-{n.savings}%</span>}
-                  </div>
-                  <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:2}}>{n.genre}{n.date?" · "+n.date:""}</div>
+                  <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.25)",marginTop:3}}>{n.source}{n.date?" · "+n.date:""}</div>
                 </div></div>)}
             </aside>}
 
@@ -1206,18 +1183,14 @@ export default function App(){
               <div className="sec-title">🧙 RPG</div>{secGrid(rpg,5)}<div style={{height:24}}/>
               <div className="sec-title">🎨 INDIE</div>{secGrid(indie,5)}
 
-              {/* Mobile: deals */}
-              {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME DEALS</div>
+              {/* Mobile: news */}
+              {m&&news.length>0&&<><div style={{height:20}}/><div className="sec-title">📰 GAME NEWS</div>
                 <div className="hs" style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
                   {news.map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",minWidth:180,flexShrink:0,cursor:"pointer"}}
-                    onClick={()=>{if(n.url)window.open(n.url,"_blank");else{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}}>
-                    {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}}/>}
+                    onClick={()=>{if(n.url)window.open(n.url,"_blank")}}>
+                    {n.img&&<img src={n.img} style={{width:"100%",height:80,objectFit:"cover",objectPosition:"top"}} onError={e=>e.target.style.display="none"}/>}
                     <div style={{padding:"8px 10px"}}><div style={{fontSize:12,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
-                        {n.price&&<span style={{fontSize:11,fontWeight:900,color:"#6ee7b7"}}>${n.price}</span>}
-                        {n.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"1px 4px",borderRadius:3,background:"rgba(110,231,183,.12)",color:"#6ee7b7"}}>-{n.savings}%</span>}
-                        <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.15)",marginLeft:"auto"}}>{n.genre}</span>
-                      </div></div></div>)}</div></>}
+                      <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.25)",marginTop:3}}>{n.source}{n.date?" · "+n.date:""}</div></div></div>)}</div></>}
             </div>
 
             {/* RIGHT sidebar */}
@@ -1242,17 +1215,14 @@ export default function App(){
                   </div>
                   <span style={{fontSize:9,color:lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.08)",flexShrink:0}}>{tA(a.created_at)}</span></div>)
                 :<p style={{textAlign:"center",padding:20,color:lt?"rgba(0,0,0,.1)":"rgba(255,255,255,.1)",fontSize:11}}>Follow people to see updates</p>}</>}
-              {!user&&<><div className="sec-title">📰 GAME DEALS</div>
+              {news.length>0&&<><div className="sec-title">📰 GAME NEWS</div>
                 {news.slice(0,5).map((n,i)=><div key={i} style={{...(lt?glassL:glass),borderRadius:12,overflow:"hidden",marginBottom:10,cursor:"pointer"}}
-                  onClick={()=>{if(n.url)window.open(n.url,"_blank");else{const g=all.find(x=>x.id===n.id);if(g)setSel(g)}}}>
-                  {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}}/>}
+                  onClick={()=>{if(n.url)window.open(n.url,"_blank")}}>
+                  {n.img&&<img src={n.img} style={{width:"100%",height:70,objectFit:"cover",objectPosition:"top"}} onError={e=>e.target.style.display="none"}/>}
                   <div style={{padding:"8px 10px"}}>
                     <div style={{fontSize:11,fontWeight:700,lineHeight:1.3}}>{n.title}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
-                      {n.price&&<span style={{fontSize:11,fontWeight:900,color:"#6ee7b7"}}>${n.price}</span>}
-                      {n.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"1px 4px",borderRadius:3,background:"rgba(110,231,183,.12)",color:"#6ee7b7"}}>-{n.savings}%</span>}
-                      <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.15)",marginLeft:"auto"}}>{n.genre}</span>
-                    </div></div></div>)}</>}
+                    <div style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginTop:2}}>{n.source}{n.date?" · "+n.date:""}</div>
+                  </div></div>)}</>}
             </aside>}
           </div>
         </div>}</div>}

@@ -153,26 +153,52 @@ export default async function handler(req, res) {
 
     if (action === "news") {
       try {
-        // Use CheapShark recent deals as gaming news (always works, no API key needed)
-        const r = await fetch(`https://www.cheapshark.com/api/1.0/deals?sortBy=Recent&pageSize=10&onSale=1`);
-        const deals = await r.json();
+        // Fetch real gaming news from RSS feeds (IGN, PC Gamer, GameSpot)
+        const feeds = [
+          "https://feeds.feedburner.com/ign/all",
+          "https://www.pcgamer.com/rss/",
+          "https://www.gamespot.com/feeds/news/",
+        ];
         
-        if (Array.isArray(deals) && deals.length) {
-          return res.json({
-            articles: deals.map(d => ({
-              title: d.title,
-              desc: `$${d.salePrice} (was $${d.normalPrice}) — ${Math.round(parseFloat(d.savings || 0))}% off`,
-              url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`,
-              img: d.thumb,
-              source: STORES[d.storeID] || "Store",
-              date: d.lastChange ? new Date(d.lastChange * 1000).toISOString() : new Date().toISOString(),
-              savings: Math.round(parseFloat(d.savings || 0)),
-              price: d.salePrice,
-              retail: d.normalPrice,
-              metacritic: d.metacriticScore ? parseInt(d.metacriticScore) : null
-            }))
-          });
+        const articles = [];
+        
+        for (const feedUrl of feeds) {
+          try {
+            const r = await fetch(feedUrl, { headers: { "User-Agent": "GameBoxd/1.0" } });
+            const xml = await r.text();
+            
+            // Simple XML parsing for RSS items
+            const items = xml.split("<item>").slice(1, 5); // Get first 4 items per feed
+            for (const item of items) {
+              const getTag = (tag) => {
+                const match = item.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([^\\]]*?)\\]\\]></${tag}>|<${tag}[^>]*>([^<]*)</${tag}>`));
+                return match ? (match[1] || match[2] || "").trim() : "";
+              };
+              
+              const title = getTag("title");
+              const link = getTag("link");
+              const pubDate = getTag("pubDate");
+              const desc = getTag("description").replace(/<[^>]+>/g, "").slice(0, 120);
+              
+              // Try to find image in media:content, media:thumbnail, or description
+              const mediaMatch = item.match(/url="(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/i);
+              const imgMatch = item.match(/<img[^>]+src="(https?:\/\/[^"]+)"/i);
+              const img = mediaMatch ? mediaMatch[1] : imgMatch ? imgMatch[1] : "";
+              
+              // Determine source from feed URL
+              const source = feedUrl.includes("ign") ? "IGN" : feedUrl.includes("pcgamer") ? "PC Gamer" : "GameSpot";
+              
+              if (title) {
+                articles.push({ title, desc, url: link, img, source, date: pubDate || new Date().toISOString() });
+              }
+            }
+          } catch {}
         }
+        
+        // Sort by date, newest first
+        articles.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        return res.json({ articles: articles.slice(0, 10) });
       } catch {}
       return res.json({ articles: [] });
     }
