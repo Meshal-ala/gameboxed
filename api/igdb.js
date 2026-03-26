@@ -35,22 +35,41 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { action, name, names } = req.query;
+  const { action, name, names, year } = req.query;
 
-  // Helper: find best name match from results
-  function bestMatch(results, searchName) {
+  // Helper: find best name match from results, with year disambiguation
+  function bestMatch(results, searchName, searchYear) {
     if (!results?.length) return null;
     const s = searchName.toLowerCase().trim();
-    // Exact match first
-    const exact = results.find(g => g.name?.toLowerCase().trim() === s);
-    if (exact) return exact;
-    // Starts with match
-    const starts = results.find(g => g.name?.toLowerCase().startsWith(s) || s.startsWith(g.name?.toLowerCase()));
+    
+    // 1. Exact name match
+    const exacts = results.filter(g => g.name?.toLowerCase().trim() === s);
+    if (exacts.length === 1) return exacts[0];
+    // If multiple exact matches (e.g. RE4 original + remake), prefer by year
+    if (exacts.length > 1 && searchYear) {
+      const yr = parseInt(searchYear);
+      const yearMatch = exacts.find(g => {
+        if (!g.first_release_date) return false;
+        const gy = new Date(g.first_release_date * 1000).getFullYear();
+        return Math.abs(gy - yr) <= 1; // within 1 year tolerance
+      });
+      if (yearMatch) return yearMatch;
+    }
+    if (exacts.length > 0) return exacts[0];
+    
+    // 2. Name with subtitle match (e.g. "The Forest" should NOT match "The Forest Cathedral")
+    // Only match if search is a complete word boundary
+    const wordBound = results.find(g => {
+      const gn = g.name?.toLowerCase().trim();
+      return gn === s || gn === s + " " || gn.startsWith(s + ":") || gn.startsWith(s + " -");
+    });
+    if (wordBound) return wordBound;
+    
+    // 3. Starts with (but NOT substring of longer name)
+    const starts = results.find(g => g.name?.toLowerCase().startsWith(s));
     if (starts) return starts;
-    // Contains match
-    const contains = results.find(g => g.name?.toLowerCase().includes(s) || s.includes(g.name?.toLowerCase()));
-    if (contains) return contains;
-    // Default to first
+    
+    // 4. Default to first result
     return results[0];
   }
 
@@ -58,9 +77,9 @@ export default async function handler(req, res) {
     // Single game cover
     if (action === "cover" && name) {
       const games = await igdbPost("games",
-        `search "${name.replace(/"/g, '\\"')}"; fields name,cover.url,platforms.abbreviation; limit 10;`
+        `search "${name.replace(/"/g, '\\"')}"; fields name,cover.url,platforms.abbreviation,first_release_date; limit 10;`
       );
-      const match = bestMatch(games, name);
+      const match = bestMatch(games, name, year);
       if (match?.cover?.url) {
         const url = match.cover.url
           .replace("//", "https://")

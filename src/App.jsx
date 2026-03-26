@@ -196,16 +196,16 @@ const Av=({url,name,size=32,onClick,v})=>{const s=avUrl(url,v);return<div onClic
 
 /* IGDB Cover Cache — proper portrait covers for ALL platforms */
 const coverCache={};
-const getIGDBCover=async(name)=>{if(!name)return null;const k=name.toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
-  try{const r=await fetch(`/api/igdb?action=cover&name=${encodeURIComponent(name)}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
-const useCover=(name,rawgImg)=>{const[src,setSrc]=useState(()=>{if(name&&coverCache[name.toLowerCase()])return coverCache[name.toLowerCase()];return null});const[loading,setLoading]=useState(true);
+const getIGDBCover=async(name,year)=>{if(!name)return null;const k=(name+"_"+(year||"")).toLowerCase();if(coverCache[k]!==undefined)return coverCache[k];
+  try{const r=await fetch(`/api/igdb?action=cover&name=${encodeURIComponent(name)}${year?"&year="+year:""}`);const d=await r.json();coverCache[k]=d.cover||null;return coverCache[k]}catch{coverCache[k]=null;return null}};
+const useCover=(name,rawgImg,year)=>{const k=name?(name+"_"+(year||"")).toLowerCase():"";const[src,setSrc]=useState(()=>{if(k&&coverCache[k])return coverCache[k];return null});const[loading,setLoading]=useState(true);
   useEffect(()=>{let c=true;
-    if(name){const k=name.toLowerCase();
+    if(name){
       if(coverCache[k]){setSrc(coverCache[k]);setLoading(false)}
       else if(coverCache[k]===null){setSrc(rawgImg);setLoading(false)}
-      else{setLoading(true);setSrc(null);getIGDBCover(name).then(u=>{if(c){setSrc(u||rawgImg);setLoading(false)}})}}
+      else{setLoading(true);setSrc(null);getIGDBCover(name,year).then(u=>{if(c){setSrc(u||rawgImg);setLoading(false)}})}}
     else{setSrc(rawgImg);setLoading(false)}
-    return()=>{c=false}},[name,rawgImg]);return[src,loading]};
+    return()=>{c=false}},[name,rawgImg,year]);return[src,loading]};
 
 /* Platform icons */
 const PlatIcon=({name,size=14})=>{const icons={PC:"🖥️",PS:"🎮",Xbox:"🟢",Switch:"🔴"};
@@ -222,7 +222,7 @@ const FavCard=({fav,onClick,m})=>{const[cover,loading]=useCover(fav.game_title,f
   </div>};
 
 const GC=({game:g,onClick,delay=0,mobile:m,ud,big})=>{const[hov,setHov]=useState(false);const[vis,setVis]=useState(false);const[err,setErr]=useState(false);
-  const[cover,loading]=useCover(big?null:g.t,g.img);
+  const[cover,loading]=useCover(big?null:g.t,g.img,g.y);
   useEffect(()=>{const t=setTimeout(()=>setVis(true),delay);return()=>clearTimeout(t)},[delay]);const u=ud?.[g.id];const imgSrc=big?g.img:cover;
   return<div onClick={()=>onClick?.(g)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
     style={{borderRadius:big?20:14,overflow:"hidden",cursor:"pointer",position:"relative",aspectRatio:big?"16/9":"2/3",
@@ -615,36 +615,39 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"},...(p?.steam_id?[{id:"achievements",l:`🏆 ${steamAchs.length||""}`}]:[])];
 
   return<div style={{animation:"pageIn .25s ease-out"}}>
-    {/* Header — custom banner with preview */}
-    <div style={{position:"relative",marginBottom:m?-30:-40}}>
-      <div style={{height:m?100:150,borderRadius:20,background:bannerPreview?`url(${bannerPreview}) center/cover`:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden",transition:"background .3s"}}/>
+    {/* Header — banner */}
+    <div style={{position:"relative"}}>
+      <div style={{height:m?120:180,borderRadius:20,background:bannerPreview?`url(${bannerPreview}) center/cover`:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden",transition:"background .3s"}}/>
       {isSelf&&<><input ref={bannerRef} type="file" accept="image/*" onChange={handleBannerSelect} style={{display:"none"}}/>
         {bannerPreview?<div style={{position:"absolute",top:m?8:10,right:m?8:10,display:"flex",gap:6,zIndex:10}}>
           <button onClick={saveBanner} disabled={bannerSaving} style={{padding:m?"8px 16px":"6px 14px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:m?12:11,fontWeight:800,cursor:"pointer"}}>{bannerSaving?"Saving...":"Save"}</button>
           <button onClick={cancelBanner} style={{padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:lt?"#1e293b":"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer"}}>Cancel</button></div>
         :<button onClick={()=>bannerRef.current?.click()} style={{position:"absolute",top:m?8:10,right:m?8:10,padding:m?"8px 14px":"6px 12px",borderRadius:10,background:"rgba(0,0,0,.65)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",fontSize:m?12:11,fontWeight:700,cursor:"pointer",backdropFilter:"blur(8px)",zIndex:10}}>📷 Banner</button>}
       </>}
+      {/* Avatar overlapping banner bottom */}
+      <div style={{position:"absolute",bottom:m?-36:-44,left:m?"50%":24,transform:m?"translateX(-50%)":"none",zIndex:5}}>
+        <div style={{border:lt?"4px solid #f8fafc":"4px solid #0f0c19",borderRadius:m?28:34,overflow:"hidden"}}><Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/></div>
+      </div>
     </div>
-    <div style={{display:"flex",alignItems:m?"center":"flex-start",gap:m?14:20,marginBottom:16,flexDirection:m?"column":"row",position:"relative",padding:m?"0 12px":"0 20px"}}>
-      <Av url={p?.avatar_url} name={p?.display_name} size={m?72:88} v={avV}/>
-      <div style={{textAlign:m?"center":"left",flex:1}}>
-        <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:26,fontWeight:900}}>{p?.display_name||"User"}</h2>
-        {p?.username&&<div style={{color:lt?"#64748b":"rgba(255,255,255,.25)",fontSize:12}}>@{p.username}</div>}
-        {p?.bio&&<p style={{color:lt?"#64748b":"rgba(255,255,255,.35)",fontSize:13,lineHeight:1.5,marginTop:4}}>{p.bio}</p>}
-        <div style={{display:"flex",gap:14,marginTop:8,justifyContent:m?"center":"flex-start"}}>
-          <div><span style={{fontWeight:900}}>{gs.length}</span> <span style={{color:lt?"#94a3b8":"rgba(255,255,255,.2)",fontSize:11}}>games</span></div>
-          <div onClick={()=>setFlM("followers")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.followers}</span> <span style={{color:"#67e8f9",fontSize:11}}>followers</span></div>
-          <div onClick={()=>setFlM("following")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.following}</span> <span style={{color:"#67e8f9",fontSize:11}}>following</span></div></div>
-        <div style={{display:"flex",gap:5,marginTop:8,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
-          {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...glass,color:lt?"#1e293b":"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
-            <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
-            <button onClick={()=>setShowShareCard(true)} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>📸 Share Card</button>
-            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:lt?"#64748b":"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗</button>
-            <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
-          :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?(lt?"1px solid rgba(0,0,0,.1)":"1px solid rgba(255,255,255,.1)"):"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?(lt?"#475569":"rgba(255,255,255,.4)"):"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
-            {onCompare&&<button onClick={()=>onCompare(viewId)} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#6ee7b7",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Compare</button>}
-            <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button></>}
-        </div></div></div>
+    {/* Profile info — below banner with space for avatar */}
+    <div style={{paddingTop:m?44:52,paddingLeft:m?0:130,paddingRight:m?0:0,textAlign:m?"center":"left",marginBottom:16}}>
+      <h2 style={{fontFamily:"'Outfit'",fontSize:m?22:28,fontWeight:900}}>{p?.display_name||"User"}</h2>
+      {p?.username&&<div style={{color:lt?"#64748b":"rgba(255,255,255,.25)",fontSize:12}}>@{p.username}</div>}
+      {p?.bio&&<p style={{color:lt?"#64748b":"rgba(255,255,255,.35)",fontSize:13,lineHeight:1.5,marginTop:4}}>{p.bio}</p>}
+      <div style={{display:"flex",gap:14,marginTop:8,justifyContent:m?"center":"flex-start"}}>
+        <div><span style={{fontWeight:900}}>{gs.length}</span> <span style={{color:lt?"#94a3b8":"rgba(255,255,255,.2)",fontSize:11}}>games</span></div>
+        <div onClick={()=>setFlM("followers")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.followers}</span> <span style={{color:"#67e8f9",fontSize:11}}>followers</span></div>
+        <div onClick={()=>setFlM("following")} style={{cursor:"pointer"}}><span style={{fontWeight:900}}>{fc.following}</span> <span style={{color:"#67e8f9",fontSize:11}}>following</span></div></div>
+      <div style={{display:"flex",gap:5,marginTop:8,justifyContent:m?"center":"flex-start",flexWrap:"wrap"}}>
+        {isSelf?<><button onClick={onEdit} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:lt?"#1e293b":"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Profile</button>
+          <button onClick={onSteam} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#67e8f9",fontSize:11,fontWeight:700,cursor:"pointer"}}>{p?.steam_id?"🎮 Linked":"🎮 Steam"}</button>
+          <button onClick={()=>setShowShareCard(true)} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>📸 Share Card</button>
+          <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:lt?"#64748b":"rgba(255,255,255,.3)",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗</button>
+          <button onClick={onSignOut} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#fda4af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign Out</button></>
+        :me&&<><button onClick={tog} style={{padding:"8px 24px",borderRadius:10,border:isF?(lt?"1px solid rgba(0,0,0,.1)":"1px solid rgba(255,255,255,.1)"):"none",background:isF?"transparent":"linear-gradient(135deg,#67e8f9,#818cf8)",color:isF?(lt?"#475569":"rgba(255,255,255,.4)"):"#0f0c19",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isF?"Following ✓":"Follow"}</button>
+          {onCompare&&<button onClick={()=>onCompare(viewId)} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#6ee7b7",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Compare</button>}
+          <button onClick={()=>{navigator.clipboard?.writeText(shareUrl);alert("Profile link copied!")}} style={{padding:"6px 14px",borderRadius:10,...(lt?glassL:glass),color:"#c4b5fd",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔗 Share</button></>}
+      </div></div>
 
     {/* Tabs — Letterboxd style */}
     <div className="hs" style={{display:"flex",gap:0,borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.06)",marginBottom:16,overflowX:"auto"}}>
@@ -693,12 +696,17 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
       {gs.length>0&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
         {[{k:"all",l:"All",c:"#fff"},{k:"completed",l:"Done",c:"#6ee7b7"},{k:"playing",l:"Playing",c:"#67e8f9"},{k:"wishlist",l:"Wishlist",c:"#fde68a"},{k:"backlog",l:"Backlog",c:"#c4b5fd"},{k:"dropped",l:"Dropped",c:"#fda4af"}].map(f=>
           <button key={f.k} onClick={()=>setLibF(f.k)} style={{padding:"4px 10px",borderRadius:8,border:"none",background:libF===f.k?f.c+"22":(lt?"rgba(0,0,0,.03)":"rgba(255,255,255,.03)"),color:libF===f.k?f.c:(lt?"#64748b":"rgba(255,255,255,.25)"),fontSize:10,fontWeight:700,cursor:"pointer"}}>{f.l} {f.k==="all"?gs.length:gs.filter(g=>g.status===f.k).length}</button>)}</div>}
-      {(()=>{const filtered=libF==="all"?gs:gs.filter(g=>g.status===libF);return filtered.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(4,1fr)":"repeat(auto-fill,minmax(70px,1fr))",gap:5}}>
+      {(()=>{const filtered=libF==="all"?gs:gs.filter(g=>g.status===libF);return filtered.length>0?<div style={{display:"grid",gridTemplateColumns:m?"repeat(3,1fr)":"repeat(auto-fill,minmax(120px,1fr))",gap:m?6:8}}>
         {filtered.map(g=>{const found=allGames.find(x=>x.id===g.game_id);const gObj=found||{id:g.game_id,t:g.game_title,img:g.game_img,y:"",genre:"",r:null,pf:[]};
-          return<div key={g.game_id} onClick={()=>setSel?.(gObj)} style={{borderRadius:5,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 1px 4px rgba(0,0,0,.2)",cursor:"pointer"}}>
-          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🎮</div>}
+          return<div key={g.game_id} onClick={()=>setSel?.(gObj)} style={{borderRadius:10,overflow:"hidden",aspectRatio:"2/3",position:"relative",boxShadow:"0 2px 8px rgba(0,0,0,.2)",cursor:"pointer",transition:"transform .15s"}}
+            onMouseEnter={e=>{if(!m)e.currentTarget.style.transform="scale(1.03)"}} onMouseLeave={e=>{if(!m)e.currentTarget.style.transform="scale(1)"}}>
+          {g.game_img?<img src={g.game_img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎮</div>}
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.6) 0%,transparent 40%)"}}/>
+          <div style={{position:"absolute",bottom:6,left:6,right:6}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.game_title}</div>
+          </div>
           {g.status&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:SC[g.status]?.c||"#fff"}}/>}
-          {g.my_rating&&<div style={{position:"absolute",top:2,right:2,padding:"1px 4px",borderRadius:3,background:"rgba(0,0,0,.7)",fontSize:7,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
+          {g.my_rating&&<div style={{position:"absolute",top:4,right:4,padding:"2px 6px",borderRadius:4,background:"rgba(0,0,0,.7)",fontSize:8,color:"#fde68a",fontWeight:800}}>★{g.my_rating}</div>}
         </div>})}</div>
       :<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>{libF==="all"?"No games yet":"No "+libF+" games"}</p>})()}
     </div>}
