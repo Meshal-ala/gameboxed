@@ -7,6 +7,38 @@ const SC={completed:{c:"#6ee7b7",l:"Completed"},playing:{c:"#67e8f9",l:"Playing"
 const glass={background:"rgba(255,255,255,.03)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,.06)",borderRadius:16};
 const glassL={background:"rgba(0,0,0,.03)",backdropFilter:"blur(12px)",border:"1px solid rgba(0,0,0,.06)",borderRadius:16};
 
+const STORES={"1":"Steam","2":"GamersGate","3":"GreenManGaming","7":"GOG","8":"Origin","11":"Humble","13":"Uplay","15":"Fanatical","21":"WinGameStore","23":"GameBillet","24":"Voidu","25":"Epic Games","27":"Gamesplanet","28":"Gamesload","29":"2Game","30":"IndieGala","31":"Blizzard","33":"DLGamer","34":"Noctre","35":"GameStop"};
+
+const getBadges=(gs,revs,diary,favs,acts,fc)=>{
+  const b=[];const gc=gs.length;const cc=gs.filter(g=>g.status==="completed").length;
+  const rc=revs.length;const dc=diary.length;
+  // Game milestones
+  if(gc>=1)b.push({id:"first",n:"First Step",d:"Add your first game",ico:"👣",c:"#6ee7b7"});
+  if(gc>=10)b.push({id:"collector",n:"Collector",d:"Track 10 games",ico:"📚",c:"#67e8f9"});
+  if(gc>=50)b.push({id:"hoarder",n:"Hoarder",d:"Track 50 games",ico:"🏪",c:"#818cf8"});
+  if(gc>=100)b.push({id:"vault",n:"The Vault",d:"Track 100 games",ico:"🏛️",c:"#fde68a"});
+  // Completion
+  if(cc>=1)b.push({id:"finisher",n:"Finisher",d:"Complete your first game",ico:"🏁",c:"#6ee7b7"});
+  if(cc>=10)b.push({id:"closer",n:"Closer",d:"Complete 10 games",ico:"🎯",c:"#67e8f9"});
+  if(cc>=25)b.push({id:"dedicated",n:"Dedicated",d:"Complete 25 games",ico:"💪",c:"#818cf8"});
+  // Reviews
+  if(rc>=1)b.push({id:"critic",n:"Critic",d:"Write your first review",ico:"✍️",c:"#fde68a"});
+  if(rc>=5)b.push({id:"reviewer",n:"Reviewer",d:"Write 5 reviews",ico:"📝",c:"#67e8f9"});
+  if(rc>=20)b.push({id:"journalist",n:"Journalist",d:"Write 20 reviews",ico:"📰",c:"#c4b5fd"});
+  // Diary
+  if(dc>=1)b.push({id:"logger",n:"Logger",d:"Log your first session",ico:"📖",c:"#6ee7b7"});
+  if(dc>=10)b.push({id:"diarist",n:"Diarist",d:"Log 10 sessions",ico:"📓",c:"#fde68a"});
+  // Social
+  if(fc?.followers>=1)b.push({id:"social",n:"Social",d:"Get your first follower",ico:"👋",c:"#fda4af"});
+  if(fc?.followers>=10)b.push({id:"popular",n:"Popular",d:"Reach 10 followers",ico:"⭐",c:"#fde68a"});
+  if(fc?.following>=5)b.push({id:"explorer",n:"Explorer",d:"Follow 5 people",ico:"🔍",c:"#67e8f9"});
+  // Favorites
+  if(favs?.length>=4)b.push({id:"curator",n:"Curator",d:"Pick 4 favorite games",ico:"🖼️",c:"#c4b5fd"});
+  // Activity
+  if(acts?.length>=50)b.push({id:"active",n:"Active",d:"50 total activities",ico:"⚡",c:"#67e8f9"});
+  return b;
+};
+
 const fg=async(p="")=>{try{return(await(await fetch(`${AP}/games?key=${AK}&page_size=20${p}`)).json()).results||[]}catch{return[]}};
 const fgd=async id=>{try{return await(await fetch(`${AP}/games/${id}?key=${AK}`)).json()}catch{return null}};
 const sga=async q=>{try{return(await(await fetch(`${AP}/games?key=${AK}&search=${encodeURIComponent(q)}&page_size=20&search_precise=true`)).json()).results||[]}catch{return[]}};
@@ -137,6 +169,10 @@ const importSteamGames=async(uid,steamid)=>{
 
 /* News — fetch recently updated/released games with details */
 const loadNews=async()=>{
+  // Try real gaming news first
+  try{const r=await fetch("/api/extra?action=news");const d=await r.json();
+    if(d.articles?.length)return d.articles.map(a=>({id:Math.random(),title:a.title,img:a.img,date:a.date?new Date(a.date).toLocaleDateString("en",{month:"short",day:"numeric"}):"",genre:a.source||"",mc:null,desc:a.desc,url:a.url}))}catch{}
+  // Fallback to RAWG recent games
   const td=new Date().toISOString().slice(0,10);const wk=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   try{const r=await fetch(`${AP}/games?key=${AK}&dates=${wk},${td}&ordering=-added&page_size=6`);const d=await r.json();
     return(d.results||[]).map(g=>({id:g.id,title:g.name,img:g.background_image,date:g.released,genre:g.genres?.[0]?.name||"",mc:g.metacritic,desc:g.genres?.map(x=>x.name).join(", ")}))
@@ -234,7 +270,7 @@ const Auth=({onClose,onAuth})=>{const[mode,setMode]=useState("login");const[emai
     }
     setLd(true);try{if(mode==="signup"){const{error:e}=await supabase.auth.signUp({email,password:pw,options:{data:{display_name:name}}});if(e)throw e;setSent(true)}else{const{data,error:e}=await supabase.auth.signInWithPassword({email,password:pw});if(e)throw e;onAuth(data.user);onClose()}}catch(e){setErr(e.message)}setLd(false)};
   const inp={width:"100%",padding:"14px 16px",borderRadius:12,border:"1px solid rgba(255,255,255,.08)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:14,outline:"none",marginBottom:12};
-  return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(24px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .15s",padding:16}}>
+  return<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(15,12,25,.95)",backdropFilter:"blur(24px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"pageIn .25s ease-out",padding:16}}>
     <div onClick={e=>e.stopPropagation()} style={{...glass,borderRadius:24,width:"100%",maxWidth:400,padding:"40px 32px",background:"rgba(30,27,46,.8)",animation:"slideUp .25s ease"}}>
       {sent?<div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>✉️</div><h2 style={{fontSize:22,fontWeight:800}}>Check your inbox</h2><p style={{color:"rgba(255,255,255,.5)",fontSize:14,marginTop:8}}>Link sent to <span style={{color:"#67e8f9"}}>{email}</span></p>
         <button onClick={onClose} style={{marginTop:24,padding:"12px 28px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#67e8f9,#818cf8)",color:"#0f0c19",fontSize:14,fontWeight:800,cursor:"pointer"}}>Got it</button></div>
@@ -427,9 +463,12 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
   const[ach,setAch]=useState(null);
   const[oc,setOc]=useState(null);// OpenCritic {score,recommended,tier,url}
   const[sgdbArt,setSgdbArt]=useState({grids:[],heroes:[]});
+  const[deals,setDeals]=useState([]);
   useEffect(()=>{setLdg(true);fgd(g.id).then(d=>{setDet(d);setLdg(false)});loadGR(g.id).then(setRvs);
     // OpenCritic score
     fetch(`/api/extra?action=oc-search&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.score)setOc(d)}).catch(()=>{});
+    // CheapShark deals
+    fetch(`/api/extra?action=deals&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.deals?.length)setDeals(d.deals)}).catch(()=>{});
     // SteamGridDB art
     fetch(`/api/extra?action=sgdb-search&name=${encodeURIComponent(g.t)}`).then(r=>r.json()).then(d=>{if(d.id){
       Promise.all([
@@ -456,7 +495,7 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
   const handleAddToList=async(listId)=>{const list=myLists?.find(l=>l.id===listId);await addGameToList(listId,g.id);setAddedList(listId);reloadLists?.();await postAct(me.id,"added to list",{id:g.id,title:g.t,img:g.img},{text:list?.title||"list"});setTimeout(()=>setAddedList(""),2000)};
   const subRev=async()=>{if(!me||!rt.trim())return;setPosting(true);await postRev(me.id,g,rr,rt);setRt("");setRr(0);setRvs(await loadGR(g.id));setPosting(false);refresh?.()};
 
-  return<div style={{position:"fixed",inset:0,zIndex:1000,background:lt?"#f8fafc":"#0f0c19",overflow:"auto",animation:"fadeIn .15s"}}>
+  return<div style={{position:"fixed",inset:0,zIndex:1000,background:lt?"#f8fafc":"#0f0c19",overflow:"auto",animation:"pageIn .25s ease-out"}}>
     <div style={{maxWidth:720,margin:"0 auto",paddingBottom:40}}>
       {/* Top bar */}
       <div style={{position:"sticky",top:0,zIndex:10,display:"flex",alignItems:"center",justifyContent:"space-between",padding:m?"10px 14px":"12px 20px",background:lt?"rgba(248,250,252,.9)":"rgba(15,12,25,.85)",backdropFilter:"blur(16px)",borderBottom:lt?"1px solid rgba(0,0,0,.06)":"1px solid rgba(255,255,255,.04)"}}>
@@ -504,6 +543,18 @@ const GD=({game:g,onClose,m,ud,setUd,user:me,setSa,refresh,goUser,avV,myLists,re
               <div style={{width:"100%",height:6,background:lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)",borderRadius:3,overflow:"hidden"}}>
                 <div style={{height:"100%",width:oc.recommended+"%",background:oc.recommended>=75?"linear-gradient(90deg,#6ee7b7,#67e8f9)":"linear-gradient(90deg,#fde68a,#fda4af)",borderRadius:3,transition:"width .6s"}}/>
               </div></div></div>
+        </div>}
+        {/* 💰 Game Deals */}
+        {deals.length>0&&<div style={{...(lt?glassL:glass),padding:"12px 16px",borderRadius:14,marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <span style={{fontSize:14}}>💰</span><span style={{fontSize:12,fontWeight:700,color:"#6ee7b7"}}>Best Deals</span></div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {deals.slice(0,4).map((d,i)=><a key={i} href={d.url} target="_blank" rel="noopener" style={{padding:"6px 10px",borderRadius:8,background:lt?"rgba(110,231,183,.08)":"rgba(110,231,183,.06)",border:"1px solid rgba(110,231,183,.12)",textDecoration:"none",display:"flex",alignItems:"center",gap:6,flex:"1 1 45%",minWidth:0}}>
+              <span style={{fontSize:13,fontWeight:900,color:"#6ee7b7"}}>${d.price}</span>
+              {d.savings>0&&<span style={{fontSize:9,color:lt?"#94a3b8":"rgba(255,255,255,.25)",textDecoration:"line-through"}}>${d.retail}</span>}
+              {d.savings>0&&<span style={{fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(110,231,183,.15)",color:"#6ee7b7"}}>-{d.savings}%</span>}
+              <span style={{fontSize:8,color:lt?"#94a3b8":"rgba(255,255,255,.2)",marginLeft:"auto",flexShrink:0}}>{STORES[d.store]||"Store"}</span>
+            </a>)}</div>
         </div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
           <div style={{...(lt?glassL:glass),padding:14,borderRadius:14}}><div style={{fontSize:9,color:lt?"#64748b":"rgba(255,255,255,.3)",fontWeight:700,marginBottom:8}}>RATE</div><Stars rating={mr} size={m?22:26} interactive onRate={v=>sv("myRating",v)}/></div>
@@ -581,7 +632,7 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
   if(ld)return<Loader/>;
   const tabs=[{id:"profile",l:"Profile"},{id:"games",l:`Games ${gs.length}`},{id:"diary",l:`Diary ${diary.length}`},{id:"reviews",l:`Reviews ${revs.length}`},{id:"lists",l:"Lists"},{id:"activity",l:"Activity"},...(p?.steam_id?[{id:"achievements",l:`🏆 ${steamAchs.length||""}`}]:[])];
 
-  return<div style={{animation:"fadeIn .15s"}}>
+  return<div style={{animation:"pageIn .25s ease-out"}}>
     {/* Header — custom banner with preview */}
     <div style={{position:"relative",marginBottom:m?-30:-40}}>
       <div style={{height:m?100:150,borderRadius:20,background:bannerPreview?`url(${bannerPreview}) center/cover`:p?.banner_url?`url(${bannerUrl(p.banner_url,avV)}) center/cover`:"linear-gradient(135deg,rgba(103,232,249,.15),rgba(129,140,248,.15),rgba(196,181,253,.15))",overflow:"hidden",transition:"background .3s"}}/>
@@ -626,6 +677,14 @@ const ProfilePage=({viewId,me,m,ud,goUser,avV,onEdit,onSignOut,onSteam,allGames,
             return<FavCard key={f.game_id} fav={f} onClick={()=>setSel?.(gObj)} m={m}/>})}</div></div>}
       {isSelf&&favs.length===0&&<div style={{textAlign:"center",padding:"16px 0 20px",...(lt?glassL:glass),borderRadius:14,marginBottom:20}}>
         <div style={{fontSize:20,marginBottom:4}}>⭐</div><p style={{color:lt?"#94a3b8":"rgba(255,255,255,.15)",fontSize:11}}>Open a game and click ⭐ to showcase up to 4 favorites</p></div>}
+
+      {/* Badges */}
+      {(()=>{const badges=getBadges(gs,revs,diary,favs,acts,fc);return badges.length>0?<div style={{marginBottom:24}}>
+        <div className="sec-title">🏅 BADGES ({badges.length})</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {badges.map(b=><div key={b.id} title={b.d} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:10,background:lt?b.c+"12":b.c+"10",border:`1px solid ${b.c}20`,fontSize:10,fontWeight:700,color:b.c}}>
+            <span style={{fontSize:14}}>{b.ico}</span>{b.n}
+          </div>)}</div></div>:null})()}
 
       {/* Recent activity preview */}
       {acts.length>0&&<div style={{marginBottom:20}}><div className="sec-title">RECENT ACTIVITY</div>
@@ -969,6 +1028,7 @@ export default function App(){
     <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Outfit:wght@100..900&display=swap');
       *{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(128,128,128,.15);border-radius:2px}
       @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
       @keyframes slideFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{to{background-position:-200% 0}}
       body{margin:0;overflow-x:hidden;background:${lt?"#f8fafc":"#0f0c19"}}img{-webkit-user-drag:none}.hs::-webkit-scrollbar{display:none}.hs{-ms-overflow-style:none;scrollbar-width:none}
       @media(max-width:767px){*{-webkit-tap-highlight-color:transparent}}input::placeholder,textarea::placeholder{color:rgba(128,128,128,.4)}
@@ -1030,7 +1090,7 @@ export default function App(){
     <main style={{maxWidth:1200,margin:"0 auto",padding:m?"8px 12px 86px":"16px 28px 44px"}}>
 
       {/* SEARCH */}
-      {pg==="search"&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="search"&&<div style={{animation:"pageIn .25s ease-out"}}>
         <div style={{display:"flex",gap:4,marginBottom:16}}>
           {[{k:"games",l:"Games",c:sr.length},{k:"people",l:"People",c:pSr.length},{k:"lists",l:"Lists",c:lSr.length}].map(t=>
             <button key={t.k} onClick={()=>setST(t.k)} style={{padding:"8px 16px",borderRadius:20,border:"none",background:sT===t.k?(lt?"rgba(0,0,0,.06)":"rgba(255,255,255,.06)"):"transparent",color:sT===t.k?(lt?"#1e293b":"#fff"):(lt?"#94a3b8":"rgba(255,255,255,.3)"),fontSize:13,fontWeight:700,cursor:"pointer"}}>{t.l}{q&&!sng&&t.c>0?` ${t.c}`:""}</button>)}</div>
@@ -1046,7 +1106,7 @@ export default function App(){
         </>}</div>}
 
       {/* HOME */}
-      {pg==="home"&&<div style={{animation:"fadeIn .2s"}}>
+      {pg==="home"&&<div style={{animation:"pageIn .3s ease-out"}}>
         {/* Hero — not logged in */}
         {!user&&!ld&&<div style={{textAlign:"center",padding:m?"30px 16px":"60px 0 50px",marginBottom:m?16:30,position:"relative"}}>
           <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 30%,rgba(103,232,249,.08) 0%,transparent 60%)",pointerEvents:"none"}}/>
@@ -1187,7 +1247,7 @@ export default function App(){
         </div>}</div>}
 
       {/* FEED */}
-      {pg==="feed"&&user&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="feed"&&user&&<div style={{animation:"pageIn .25s ease-out"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Activity</h2>
         {feed.length?feed.map(a=><div key={a.id} style={{...(lt?glassL:glass),borderRadius:14,padding:m?"12px":"14px 16px",marginBottom:6,display:"flex",gap:m?10:14,alignItems:"flex-start"}}>
           <Av url={a.profiles?.avatar_url} name={a.profiles?.display_name} size={m?32:36} onClick={()=>goUser(a.user_id)} v={avV}/>
@@ -1220,7 +1280,7 @@ export default function App(){
         :<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>No activity yet — follow people to see their updates here</p>}</div>}
 
       {/* EXPLORE — Steam-style Category Browsing */}
-      {pg==="explore"&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="explore"&&<div style={{animation:"pageIn .25s ease-out"}}>
 
         {/* No category selected — Show category grid */}
         {!expCat&&!fPlat?<>
@@ -1325,8 +1385,24 @@ export default function App(){
       </div>}
 
       {/* LIBRARY */}
-      {pg==="library"&&user&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="library"&&user&&<div style={{animation:"pageIn .25s ease-out"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Library</h2>
+        {/* Backlog Prioritizer */}
+        {(()=>{const backlog=lib.filter(g=>ud[g.id]?.status==="backlog");if(backlog.length<2)return null;
+          // Score each backlog game: genre match with completed games + community rating
+          const genreCounts={};lib.forEach(g=>{if(ud[g.id]?.myRating>=3.5&&g.genre){g.genre.split(", ").forEach(gn=>{genreCounts[gn]=(genreCounts[gn]||0)+1})}});
+          const scored=backlog.map(g=>{let score=g.r||0;if(g.genre)g.genre.split(", ").forEach(gn=>{score+=(genreCounts[gn]||0)*0.5});return{...g,score}}).sort((a,b)=>b.score-a.score);
+          const pick=scored[0];if(!pick)return null;
+          return<div onClick={()=>setSel(pick)} style={{...(lt?glassL:glass),borderRadius:16,padding:m?12:16,marginBottom:20,cursor:"pointer",display:"flex",gap:14,alignItems:"center",border:lt?"1px solid rgba(103,232,249,.15)":"1px solid rgba(103,232,249,.1)"}}>
+            <div style={{width:48,height:64,borderRadius:8,overflow:"hidden",flexShrink:0,boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
+              {pick.img?<img src={pick.img} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<div style={{width:"100%",height:"100%",background:lt?"#e2e8f0":"#1e1b2e"}}/>}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#67e8f9",letterSpacing:".05em",marginBottom:2}}>🎯 PLAY NEXT</div>
+              <div style={{fontSize:14,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pick.t}</div>
+              <div style={{fontSize:10,color:lt?"#64748b":"rgba(255,255,255,.3)",marginTop:1}}>{pick.genre||""} {pick.r?`· ★${pick.r}`:""}</div>
+            </div>
+            <div style={{fontSize:10,color:lt?"#94a3b8":"rgba(255,255,255,.15)",flexShrink:0}}>from {backlog.length} in backlog</div>
+          </div>})()}
         {lib.length?<><div className="hs" style={{display:"flex",gap:5,marginBottom:14,overflowX:"auto"}}>
           {[["all","All"],["playing","Playing"],["completed","Completed"],["backlog","Backlog"],["wishlist","Wishlist"],["dropped","Dropped"]].map(([k,l])=>
             <button key={k} onClick={()=>setLf(k)} style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",border:"none",background:lf===k?"rgba(103,232,249,.12)":(lt?"rgba(0,0,0,.04)":"rgba(255,255,255,.04)"),color:lf===k?"#67e8f9":(lt?"#64748b":"rgba(255,255,255,.25)")}}>{l} {k==="all"?lib.length:lib.filter(g=>ud[g.id]?.status===k).length}</button>)}</div>
@@ -1334,18 +1410,18 @@ export default function App(){
         </>:<p style={{textAlign:"center",padding:40,color:lt?"#94a3b8":"rgba(255,255,255,.15)"}}>Search and add games</p>}</div>}
 
       {/* VIEW OTHER USER — full page */}
-      {pg==="viewuser"&&viewUID&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="viewuser"&&viewUID&&<div style={{animation:"pageIn .25s ease-out"}}>
         <button onClick={()=>{setPg("home");setViewUID(null)}} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 12px",borderRadius:10,...(lt?glassL:glass),color:lt?"#334155":"rgba(255,255,255,.5)",fontSize:12,fontWeight:700,cursor:"pointer",marginBottom:12,border:"none"}}>← Back</button>
         <ProfilePage viewId={viewUID} me={user} m={m} ud={ud} goUser={goUser} avV={avV} allGames={all} myLists={myL} reloadLists={()=>user&&loadLists(user.id).then(setMyL)} setSel={setSel} onCompare={loadCompare} lt={lt}/>
       </div>}
 
       {/* MY PROFILE — full page */}
-      {pg==="profile"&&user&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="profile"&&user&&<div style={{animation:"pageIn .25s ease-out"}}>
         <ProfilePage viewId={user.id} me={user} m={m} ud={ud} goUser={goUser} avV={avV} onEdit={()=>setEp(true)} onSignOut={so} onSteam={()=>setSteamModal(true)} allGames={all} myLists={myL} reloadLists={()=>loadLists(user.id).then(setMyL)} setSel={setSel} onBanner={reloadProf} lt={lt}/>
       </div>}
 
       {/* STATS */}
-      {pg==="stats"&&user&&<div style={{animation:"fadeIn .15s"}}>
+      {pg==="stats"&&user&&<div style={{animation:"pageIn .25s ease-out"}}>
         <h2 style={{fontFamily:"'Outfit'",fontSize:m?20:24,fontWeight:900,marginBottom:16}}>Stats</h2>
         {lib.length?(()=>{const bs=s=>lib.filter(g=>ud[g.id]?.status===s).length;const rt=lib.filter(g=>ud[g.id]?.myRating);const av=rt.length?(rt.reduce((s,g)=>s+ud[g.id].myRating,0)/rt.length).toFixed(1):"—";
           // Genre breakdown from all games

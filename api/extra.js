@@ -105,7 +105,87 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ error: "Invalid action. Use: oc-search, sgdb-search, sgdb-grids, sgdb-heroes, sgdb-icons" });
+    // ═══ CHEAPSHARK DEALS ═══
+
+    // Search deals for a game
+    if (action === "deals" && name) {
+      const r = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(name)}&limit=1`);
+      const games = await r.json();
+      if (!games?.length) return res.json({ deals: [] });
+
+      const gameId = games[0].gameID;
+      const dr = await fetch(`https://www.cheapshark.com/api/1.0/games?id=${gameId}`);
+      const detail = await dr.json();
+
+      return res.json({
+        cheapest: detail.cheapestPriceEver ? { price: detail.cheapestPriceEver.price, date: detail.cheapestPriceEver.date } : null,
+        deals: (detail.deals || []).slice(0, 6).map(d => ({
+          store: d.storeID,
+          price: d.price,
+          retail: d.retailPrice,
+          savings: Math.round(parseFloat(d.savings)),
+          url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`
+        }))
+      });
+    }
+
+    // Top current deals
+    if (action === "top-deals") {
+      const r = await fetch(`https://www.cheapshark.com/api/1.0/deals?sortBy=Deal%20Rating&pageSize=12&onSale=1`);
+      const deals = await r.json();
+      return res.json({
+        deals: (deals || []).map(d => ({
+          title: d.title,
+          price: d.salePrice,
+          retail: d.normalPrice,
+          savings: Math.round(parseFloat(d.savings)),
+          thumb: d.thumb,
+          metacritic: d.metacriticScore ? parseInt(d.metacriticScore) : null,
+          rating: d.steamRatingPercent ? parseInt(d.steamRatingPercent) : null,
+          store: d.storeID,
+          url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`
+        }))
+      });
+    }
+
+    // ═══ GAMING NEWS ═══
+
+    // Fetch gaming news via GNews
+    if (action === "news") {
+      const r = await fetch(`https://gnews.io/api/v4/search?q=video+games&lang=en&category=entertainment&max=8&sortby=publishedAt&apikey=free`);
+      const fallback = await fetch(`https://www.cheapshark.com/api/1.0/deals?sortBy=Recent&pageSize=8`);
+      const fb = await fallback.json();
+      
+      try {
+        const d = await r.json();
+        if (d.articles?.length) {
+          return res.json({
+            articles: d.articles.map(a => ({
+              title: a.title,
+              desc: a.description,
+              url: a.url,
+              img: a.image,
+              source: a.source?.name,
+              date: a.publishedAt
+            }))
+          });
+        }
+      } catch {}
+      
+      // Fallback to recent deals as "news"
+      return res.json({
+        articles: (fb || []).slice(0, 8).map(d => ({
+          title: `${d.title} — $${d.salePrice} (${Math.round(parseFloat(d.savings))}% off)`,
+          desc: `Was $${d.normalPrice}, now $${d.salePrice}`,
+          url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`,
+          img: d.thumb,
+          source: "CheapShark",
+          date: new Date(d.lastChange * 1000).toISOString()
+        }))
+      });
+    }
+
+    return res.status(400).json({ error: "Invalid action" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
